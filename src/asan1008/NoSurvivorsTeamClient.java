@@ -182,6 +182,10 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		log("Performing same old action: " + ship.getCurrentAction().toString());
 		return ship.getCurrentAction();
 	}
+	
+	private AbstractAction fasterMoveToObjectAction(Toroidal2DPhysics space, Ship ship, AbstractObject goalObject) {
+		return new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), goalObject);
+	}
 
 	private void log(String logMessage) {
 		System.out.println(logMessage);
