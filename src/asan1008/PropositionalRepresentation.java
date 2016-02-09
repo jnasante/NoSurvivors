@@ -23,7 +23,6 @@ public class PropositionalRepresentation {
 	private Beacon currentTargetBeacon;
 	private Asteroid nearestAsteroid;
 	private Asteroid currentTargetAsteroid;
-	private spacesettlers.actions.AbstractAction currentAction;
 	
 	// Calculated distances
 	private double distanceToEnemy;
@@ -47,7 +46,6 @@ public class PropositionalRepresentation {
 		nearestBase = findNearestBase(space, ship);
 		nearestBeacon = findNearestBeacon(space, ship);
 		nearestAsteroid = findNearestAsteroid(space, ship);
-		currentAction = ship.getCurrentAction();
 		
 		updateTargetEnemy(space, ship);
 		updateTargetBeacon(space, ship);
@@ -151,10 +149,6 @@ public class PropositionalRepresentation {
 		return distanceToAsteroid;
 	}
 
-	protected spacesettlers.actions.AbstractAction getCurrentAction() {
-		return currentAction;
-	}
-	
 	protected Ship getCurrentTargetEnemy() {
 		return currentTargetEnemy;
 	}

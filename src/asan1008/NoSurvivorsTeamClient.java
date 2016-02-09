@@ -99,19 +99,16 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				propKnowledge.setCurrentTargetEnemy(null);
 				
 				// Find nearest enemy within short distance to target beacon
-				Ship enemy = propKnowledge.findNearestEnemyWithinShortDistanceToBeacon(space, ship, propKnowledge.getNearestBeacon());
-				
-				if (enemy != null) {
+				if (propKnowledge.getDistanceBetweenTargetBeaconAndEnemy() < propKnowledge.SHORT_DISTANCE) {
 					willShoot = true;
-					log("Will shoot = true");
 				} else {
 					willShoot = false;
-					log("Will shoot = false");
 				}
 				
 				if (propKnowledge.getDistanceToBeacon() <= propKnowledge.SHORT_DISTANCE || propKnowledge.getDistanceToBeacon() <= propKnowledge.getDistanceToBase() || propKnowledge.getNearestBase().getEnergy() < 1000) {
 					// Beacon is within short distance, or it is closer than the nearest base, or the base doesn't have enough energy to satisfy our hunger
 					newAction = new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), propKnowledge.getNearestBeacon());
+					//newAction = new MoveAction(space, propKnowledge.getCurrentPosition(), propKnowledge.getNearestBeacon().getPosition(), new Vector2D(ship.getPosition().getxVelocity(), ship.getPosition().getyVelocity()));
 					propKnowledge.setCurrentTargetBeacon(propKnowledge.getNearestBeacon());
 					log("Moving toward beacon");
 					return newAction;
@@ -143,7 +140,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		}*/
 		
 		// if we do not already have a current target enemy, decide on a new enemy or asteroid
-		if (propKnowledge.getCurrentAction().isMovementFinished(space) || propKnowledge.getCurrentAction() == null) {
+		if (ship.getCurrentAction().isMovementFinished(space) || ship.getCurrentAction() == null) {
 			
 			// Both asteroid and enemy don't exist, do nothing
 			if (propKnowledge.getNearestAsteroid() == null && propKnowledge.getNearestEnemy() == null) {
@@ -182,7 +179,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		}
 
 		// return the current if new goals haven't formed
-		//log("I don't know what I'm doing");
+		log("Performing same old action: " + ship.getCurrentAction().toString());
 		return ship.getCurrentAction();
 	}
 
