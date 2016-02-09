@@ -33,7 +33,7 @@ public class PropositionalRepresentation {
 	private double distanceBetweenTargetBeaconAndEnemy;
 
 	// Static constants
-	public final int LARGE_DISTANCE = 350;
+	public final int LARGE_DISTANCE = 400;
 	public final int SHORT_DISTANCE = 60;
 	public final int BEACON_BASE_DIFFERENCE_THRESHOLD = 100;
 
