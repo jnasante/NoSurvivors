@@ -48,7 +48,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			Set<AbstractActionableObject> actionableObjects) {
 		HashMap<UUID, AbstractAction> actions = new HashMap<UUID, AbstractAction>();
 		
-		for (AbstractObject actionable :  actionableObjects) {
+		for (AbstractObject actionable : actionableObjects) {
 			if (actionable instanceof Ship) {
 				Ship ship = (Ship) actionable;
 
@@ -56,12 +56,19 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				actions.put(ship.getId(), action);
 				
 			} else {
-				// it is a base.  Heuristically decide when to use the shield (TODO)
+				// it is a base. Do nothing with bases (for now)
 				actions.put(actionable.getId(), new DoNothingAction());
 			}
 		} 
+		
 		return actions;
 	}
+	
+
+	@Override
+	public void getMovementEnd(Toroidal2DPhysics space, Set<AbstractActionableObject> actionableObjects) {
+	}
+	
 	
 	/**
 	 * Gets the action for the asteroid collecting ship (while being aggressive towards the other ships)
@@ -71,32 +78,30 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 */
 	private AbstractAction getAggressiveAction(Toroidal2DPhysics space, Ship ship) {
 		propKnowledge.updateRepresentation(space, ship);
-		log(String.valueOf(ship.getPosition().getOrientation()));
-		log(String.valueOf(ship.getPosition().getxVelocity()) + ", " + String.valueOf(ship.getPosition().getyVelocity()));
 		
 		AbstractAction newAction = null;
-		
-		// Once we are 
-		if (propKnowledge.getCurrentAction() instanceof MoveToObjectAction) {
-			if (((MoveToObjectAction)propKnowledge.getCurrentAction()).getGoalObject() instanceof Beacon) {
-				// Find nearest enemy
-				Ship enemy = propKnowledge.findNearestEnemy(space, ship);
-			}
+				
+		/*if (propKnowledge.getCurrentTargetBase() != null) {
+			log("Going after target base");
+			return ship.getCurrentAction();
 		}
-
+		
+		if (propKnowledge.getCurrentTargetBeacon() != null) {
+			log("Going after target beacon");
+			return ship.getCurrentAction();
+		}*/
+		
 		// If we don't have enough fuel, locate nearest fuel source
 		if (ship.getEnergy() < 2000) {
-			// Find nearest beacon
-			Beacon beacon = propKnowledge.findNearestBeacon(space, ship);
-			
-			// Find nearest base
-			Base base = propKnowledge.findNearestBase(space, ship);
-
-			if (beacon != null) {
-				// Find nearest enemy to target beacon
-				Ship enemy = propKnowledge.findNearestEnemyToBeacon(space, ship, beacon);
+			if (propKnowledge.getNearestBeacon() != null) {
 				
-				if (enemy != null && space.findShortestDistance(enemy.getPosition(), beacon.getPosition()) < propKnowledge.SHORT_DISTANCE) {
+				// Going to recharge, release target enemy
+				propKnowledge.setCurrentTargetEnemy(null);
+				
+				// Find nearest enemy within short distance to target beacon
+				Ship enemy = propKnowledge.findNearestEnemyWithinShortDistanceToBeacon(space, ship, propKnowledge.getNearestBeacon());
+				
+				if (enemy != null) {
 					willShoot = true;
 					log("Will shoot = true");
 				} else {
@@ -104,71 +109,80 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					log("Will shoot = false");
 				}
 				
-				if (propKnowledge.getDistanceToBeacon() <= propKnowledge.SHORT_DISTANCE || propKnowledge.getDistanceToBeacon() <= propKnowledge.getDistanceToBeacon() || base.getEnergy() < 1000) {
-					// Beacon is within short distance, so go to that
-					//newAction = new MoveAction(space, currentPosition, base.getPosition(), new Vector2D(beacon.getPosition())); 
-					newAction = new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), beacon);
+				if (propKnowledge.getDistanceToBeacon() <= propKnowledge.SHORT_DISTANCE || propKnowledge.getDistanceToBeacon() <= propKnowledge.getDistanceToBase() || propKnowledge.getNearestBase().getEnergy() < 1000) {
+					// Beacon is within short distance, or it is closer than the nearest base, or the base doesn't have enough energy to satisfy our hunger
+					newAction = new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), propKnowledge.getNearestBeacon());
+					propKnowledge.setCurrentTargetBeacon(propKnowledge.getNearestBeacon());
 					log("Moving toward beacon");
 					return newAction;
 				}
 			}
 			
 			// There is no beacon, or the base is closer and has enough energy
-			newAction = new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), base);
+			newAction = new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), propKnowledge.getNearestBase());
+			propKnowledge.setCurrentTargetBase(propKnowledge.getNearestBase());
 			log("Moving toward base");
 			return newAction;
+		} else {
+			propKnowledge.setCurrentTargetBeacon(null);
+			propKnowledge.setCurrentTargetBase(null); // TODO: fix
 		}
 		
-		// otherwise either for an asteroid or an enemy ship (depending on who is closer and what we need)
-		if (propKnowledge.getCurrentAction() == null || propKnowledge.getCurrentAction().isMovementFinished(space)) {
-
-			// see if there is an enemy ship nearby
-			Ship enemy = propKnowledge.findNearestEnemy(space, ship);
-			
-			// find the highest valued nearby asteroid
-			Asteroid asteroid = propKnowledge.pickHighestValueFreeAsteroid(space, ship);
-
-			// if there is no enemy nearby, go for an asteroid
-			if (enemy == null) {
-				willShoot = false;
-				
-				if (asteroid != null) {
-					newAction = new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), asteroid);
-					log("Moving toward asteroid, not shooting");
-					return newAction;
-				} else {
-					// no enemy and no asteroid, just skip this turn (shouldn't happen often)
-					log("No enemy, no asteroid. I'm just gonna sit here.");
-					newAction = new DoNothingAction();
-				}
-			}
-			
-			// now decide which one to aim for
-			double enemyDistance = space.findShortestDistance(ship.getPosition(), enemy.getPosition());
-						
-			if (asteroid == null || enemyDistance - space.findShortestDistance(ship.getPosition(), asteroid.getPosition()) < 100) {
-				willShoot = enemyDistance <= propKnowledge.LARGE_DISTANCE ? true : false;
-				newAction = new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), enemy);
-				log("Moving toward enemy, attempting to annihilate them");
-			} else {
-				willShoot = false;
-				newAction = new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), asteroid);
-				log("Moving toward asteroid. Gonna get me some money.");
-			}
-						
+		if (propKnowledge.getCurrentTargetEnemy() != null) {
+			willShoot = true;
+			newAction = new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), propKnowledge.getCurrentTargetEnemy());
+			log("Hunting target: " + propKnowledge.getCurrentTargetEnemy().getTeamName());
 			return newAction;
 		}
+
+		/*if (propKnowledge.getCurrentTargetAsteroid() != null) {
+			willShoot = false;
+			newAction = new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), propKnowledge.getCurrentTargetAsteroid());
+			log("Chasing asteroid with resources: " + propKnowledge.getCurrentTargetAsteroid().getResources() + "  " + propKnowledge.getCurrentTargetAsteroid().isAlive());
+			return newAction;
+		}*/
+		
+		// if we do not already have a current target enemy, decide on a new enemy or asteroid
+		if (propKnowledge.getCurrentAction().isMovementFinished(space) || propKnowledge.getCurrentAction() == null) {
+			
+			// Both asteroid and enemy don't exist, do nothing
+			if (propKnowledge.getNearestAsteroid() == null && propKnowledge.getNearestEnemy() == null) {
+				willShoot = false;
+				newAction = new DoNothingAction();
+				System.err.println("Doing nothing");
+				return newAction;
+			}
+			
+			// Asteroid is much more convenient than enemy at this time
+			if (propKnowledge.getDistanceToAsteroid() < propKnowledge.SHORT_DISTANCE && propKnowledge.getDistanceToEnemy() > propKnowledge.SHORT_DISTANCE
+					//|| propKnowledge.getDistanceToEnemy() - propKnowledge.getDistanceToAsteroid() < 250
+					|| propKnowledge.getNearestEnemy() == null) {
+				willShoot = false;
+				newAction = new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), propKnowledge.getNearestAsteroid());
+				propKnowledge.setCurrentTargetAsteroid(propKnowledge.getNearestAsteroid());
+				log("Moving toward asteroid. Gonna get me some money.");
+				return newAction;
+			} 
+			
+			// Go for the enemy!
+			willShoot = propKnowledge.getDistanceToEnemy() <= propKnowledge.LARGE_DISTANCE ? true : false;
+			newAction = new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), propKnowledge.getNearestEnemy());
+			propKnowledge.setCurrentTargetEnemy(propKnowledge.getNearestEnemy());
+			log("Moving toward new enemy, attempting to annihilate new target: " + propKnowledge.getCurrentTargetEnemy().getTeamName());
+			return newAction;
+		} 
 		
 		// if the ship has enough resourcesAvailable, take it back to base
 		if (ship.getResources().getTotal() > 500) {
-			Base base = propKnowledge.findNearestBase(space, ship);
+			Base base = propKnowledge.getNearestBase();
 			newAction = new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), base);
 			willShoot = false;
-			log("Going toward base, not shooting");
+			log("Going toward base, with loot");
 			return newAction;
 		}
 
 		// return the current if new goals haven't formed
+		//log("I don't know what I'm doing");
 		return ship.getCurrentAction();
 	}
 
@@ -178,7 +192,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 	@Override
 	public void initialize(Toroidal2DPhysics space) {
-		propKnowledge = new PropositionalRepresentation(space);
+		propKnowledge = new PropositionalRepresentation();
 		asteroidCollectorID = null;
 	}
 
@@ -289,12 +303,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 		
 		return powerUps;
-	}
-
-	@Override
-	public void getMovementEnd(Toroidal2DPhysics space, Set<AbstractActionableObject> actionableObjects) {
-		// TODO Auto-generated method stub
-		
 	}
 
 }
