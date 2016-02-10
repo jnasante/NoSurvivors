@@ -13,16 +13,13 @@ import spacesettlers.utilities.Position;
 
 public class PropositionalRepresentation {
 	
-	// 
+	// tracked close objects
 	private Position currentPosition;
 	private Ship nearestEnemy;
 	private Ship currentTargetEnemy;
 	private Base nearestBase;
-	private Base currentTargetBase;
 	private Beacon nearestBeacon;
-	private Beacon currentTargetBeacon;
 	private Asteroid nearestAsteroid;
-	private Asteroid currentTargetAsteroid;
 	
 	// Calculated distances
 	private double distanceToEnemy;
@@ -48,9 +45,6 @@ public class PropositionalRepresentation {
 		nearestAsteroid = findNearestAsteroid(space, ship);
 		
 		updateTargetEnemy(space, ship);
-		updateTargetBeacon(space, ship);
-		updateTargetAsteroid(space, ship);
-		updateTargetBase(space, ship);
 		
 		distanceToEnemy = nearestEnemy == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(currentPosition, nearestEnemy.getPosition());
 		distanceToBase = nearestBase == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(ship.getPosition(), nearestBase.getPosition());
@@ -58,7 +52,6 @@ public class PropositionalRepresentation {
 		distanceToAsteroid = nearestAsteroid == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(ship.getPosition(), nearestAsteroid.getPosition());
 		distanceBetweenTargetBeaconAndEnemy = nearestEnemy == null || nearestBeacon == null ? 
 				Double.POSITIVE_INFINITY : space.findShortestDistance(nearestEnemy.getPosition(), nearestBeacon.getPosition());
-		
 	}
 	
 	protected Position getCurrentPosition() {
@@ -83,42 +76,6 @@ public class PropositionalRepresentation {
 				}				
 			}
 		}
-	}
-	
-	public void updateTargetAsteroid(Toroidal2DPhysics space, Ship ship) {
-		if (currentTargetAsteroid != null) {
-			if (!currentTargetAsteroid.isAlive()) {
-				currentTargetAsteroid = null;
-				return;
-			}
-						
-			for (Asteroid updatedTargetAsteroid : space.getAsteroids()) {
-				if (updatedTargetAsteroid.getId() == currentTargetAsteroid.getId()) {
-					currentTargetAsteroid = updatedTargetAsteroid;
-					return;
-				}				
-			}
-		}
-	}
-
-	public void updateTargetBeacon(Toroidal2DPhysics space, Ship ship) {
-		if (currentTargetBeacon != null) {
-			if (!currentTargetBeacon.isAlive()) {
-				currentTargetBeacon = null;
-			} else if (distanceToBeacon < space.findShortestDistance(ship.getPosition(), currentTargetBeacon.getPosition())) {
-				currentTargetBeacon = nearestBeacon;
-			}
-		} 
-	}
-
-	public void updateTargetBase(Toroidal2DPhysics space, Ship ship) {
-		if (currentTargetBase != null) {
-			if (!currentTargetBase.isAlive()) {
-				currentTargetBase = null;
-			} else if (distanceToBase < space.findShortestDistance(ship.getPosition(), currentTargetBase.getPosition())) {
-				currentTargetBase = nearestBase;
-			}
-		} 
 	}
 
 	protected double getDistanceToEnemy() {
@@ -152,18 +109,6 @@ public class PropositionalRepresentation {
 	protected Ship getCurrentTargetEnemy() {
 		return currentTargetEnemy;
 	}
-	
-	protected Beacon getCurrentTargetBeacon() {
-		return currentTargetBeacon;
-	}
-	
-	protected Asteroid getCurrentTargetAsteroid() {
-		return currentTargetAsteroid;
-	}
-	
-	protected Base getCurrentTargetBase() {
-		return currentTargetBase;
-	}
 
 	protected double getDistanceBetweenTargetBeaconAndEnemy() {
 		return distanceBetweenTargetBeaconAndEnemy;
@@ -173,18 +118,6 @@ public class PropositionalRepresentation {
 		currentTargetEnemy = enemy;
 	}
 	
-	protected void setCurrentTargetBeacon(Beacon beacon) {
-		currentTargetBeacon = beacon;
-	}
-	
-	protected void setCurrentTargetAsteroid(Asteroid asteroid) {
-		currentTargetAsteroid = asteroid;
-	}
-	
-	protected void setCurrentTargetBase(Base base) {
-		currentTargetBase = base;
-	}
-
 	/**
 	 * Find the nearest ship on another team and aim for it
 	 * @param space
@@ -286,9 +219,27 @@ public class PropositionalRepresentation {
 		return closestAsteroid;
 	}
 	
-	/**
-	 * 
-	 */
+	public Asteroid findNearestDeadlyAsteroid(Toroidal2DPhysics space, Ship ship) {
+		// get the current asteroids
+		Set<Asteroid> asteroids = space.getAsteroids();
+
+		Asteroid closestAsteroid = null;
+		double bestDistance = Double.POSITIVE_INFINITY;
+
+		for (Asteroid asteroid : asteroids) {
+			if (asteroid.isMineable()) {
+				continue;
+			}
+			
+			double dist = space.findShortestDistance(ship.getPosition(), asteroid.getPosition());
+			if (dist < bestDistance) {
+				bestDistance = dist;
+				closestAsteroid = asteroid;
+			}
+		}
+
+		return closestAsteroid;
+	}
 
 	/**
 	 * Find the nearest beacon to this ship
@@ -313,6 +264,4 @@ public class PropositionalRepresentation {
 
 		return closestBeacon;
 	}
-
-
 }
