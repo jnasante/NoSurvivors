@@ -1,27 +1,19 @@
 package asan1008;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.activation.UnsupportedDataTypeException;
-
-import org.omg.CORBA.INTERNAL;
-
 import spacesettlers.actions.AbstractAction;
 import spacesettlers.actions.DoNothingAction;
-import spacesettlers.actions.MoveAction;
 import spacesettlers.actions.MoveToObjectAction;
 import spacesettlers.actions.PurchaseCosts;
 import spacesettlers.actions.PurchaseTypes;
 import spacesettlers.graphics.SpacewarGraphics;
 import spacesettlers.objects.AbstractActionableObject;
 import spacesettlers.objects.AbstractObject;
-import spacesettlers.objects.Asteroid;
-import spacesettlers.objects.Base;
 import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
 import spacesettlers.objects.powerups.SpaceSettlersPowerupEnum;
@@ -36,11 +28,15 @@ import spacesettlers.utilities.Vector2D;
  * 
  */
 public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
-	PropositionalRepresentation propKnowledge;
+	PropositionalRepresentation propositionalKnowledge;
+	RelationalRepresentation relationalKnowledge;
+	
+	// Powerups
+	double weaponsProbability = 1;
 	boolean willShoot = false;
 
 	/**
-	 * Assigns ships to asteroids and beacons, as described above
+	 * Generates the action that must be executed in this time step based on current knowledge of the environment
 	 */
 	public Map<UUID, AbstractAction> getMovementStart(Toroidal2DPhysics space,
 			Set<AbstractActionableObject> actionableObjects) {
@@ -68,13 +64,20 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 	
 	/**
-	 * Gets the action for the asteroid collecting ship (while being aggressive towards the other ships)
-	 * @param space
-	 * @param ship
+	 * Gets the action for the our aggressive ship, setting priorities in the order:
+	 * 1) Staying alive
+	 * 2) Buying weapon or health upgrades
+	 * 3) Targeting enemy ships
+	 * 4) Targeting mineable asteroids
+	 * 
+	 * @param space Current space instance
+	 * @param ship Our ship
 	 * @return
 	 */
 	private AbstractAction getAggressiveAction(Toroidal2DPhysics space, Ship ship) {
-		propKnowledge.updateRepresentation(space, ship);
+		// Update current knowledge of the environment
+		relationalKnowledge.updateRepresentation(space, ship);
+		propositionalKnowledge.updateRepresentation(relationalKnowledge, space, ship);
 				
 		AbstractAction newAction = null;
 		
@@ -84,45 +87,48 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 		// If we don't have enough fuel, locate nearest fuel source
 		if (ship.getEnergy() < 2000 && ship.isAlive()) {
-			if (propKnowledge.getNearestBeacon() != null) {
+			if (relationalKnowledge.getNearestBeacon() != null) {
 				
 				// Going to recharge, release target enemy
-				propKnowledge.setCurrentTargetEnemy(null);
+				relationalKnowledge.setCurrentTargetEnemy(null);
 				
 				// Find nearest enemy within short distance to target beacon
-				if (propKnowledge.getDistanceBetweenTargetBeaconAndEnemy() < propKnowledge.SHORT_DISTANCE || 
-						propKnowledge.getDistanceToBeacon() > propKnowledge.getDistanceBetweenTargetBeaconAndEnemy()) {
+				if (propositionalKnowledge.getDistanceBetweenTargetBeaconAndEnemy() < propositionalKnowledge.SHORT_DISTANCE || 
+						propositionalKnowledge.getDistanceToBeacon() > propositionalKnowledge.getDistanceBetweenTargetBeaconAndEnemy()) {
 					willShoot = true;
 				} else {
 					willShoot = false;
 				}
 				
-				if (propKnowledge.getDistanceToBeacon() <= propKnowledge.SHORT_DISTANCE || propKnowledge.getDistanceToBeacon() <= propKnowledge.getDistanceToBase() || propKnowledge.getNearestBase().getEnergy() < 1000) {
+				if (propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.SHORT_DISTANCE || 
+						propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.getDistanceToBase() || 
+						relationalKnowledge.getNearestBase().getEnergy() < 1000) {
 					// Beacon is within short distance, or it is closer than the nearest base, or the base doesn't have enough energy to satisfy our hunger
-					newAction = fasterMoveToObjectAction(space, propKnowledge.getNearestBeacon());
-					//log("Moving toward beacon at: " + propKnowledge.getNearestBeacon().getPosition().getX() + ", " + propKnowledge.getNearestBeacon().getPosition().getY());
+					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon());
+					//log("Moving toward beacon at: " + relationalKnowledge.getNearestBeacon().getPosition().getX() + ", " + relationalKnowledge.getNearestBeacon().getPosition().getY());
 					return newAction;
 				}
 			}
 			
 			// There is no beacon, or the base is closer and has enough energy
-			newAction = fasterMoveToObjectAction(space, propKnowledge.getNearestBase());
+			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase());
 			//log("Moving toward base");
 			return newAction;
 		}
 		
 		// if the ship has enough resourcesAvailable, take it back to base
 		if (ship.getResources().getTotal() > 1000) {
-			newAction = fasterMoveToObjectAction(space, propKnowledge.getNearestBase());
+			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase());
 			willShoot = false;
 			//log("Going toward base, with loot");
 			return newAction;
 		}
 		
-		if (propKnowledge.getCurrentTargetEnemy() != null) {
+		// We have a current target enemy, so keep aiming for that
+		if (relationalKnowledge.getCurrentTargetEnemy() != null) {
 			willShoot = true;
-			newAction = fasterMoveToObjectAction(space, propKnowledge.getCurrentTargetEnemy());
-			//log("Hunting target: " + propKnowledge.getCurrentTargetEnemy().getTeamName());
+			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetEnemy());
+			//("Hunting target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
 			return newAction;
 		}
 		
@@ -130,7 +136,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		if (ship.getCurrentAction().isMovementFinished(space) || ship.getCurrentAction() == null) {
 			
 			// Both asteroid and enemy don't exist, do nothing
-			if (propKnowledge.getNearestAsteroid() == null && propKnowledge.getNearestEnemy() == null) {
+			if (relationalKnowledge.getNearestAsteroid() == null && relationalKnowledge.getNearestEnemy() == null) {
 				willShoot = false;
 				newAction = new DoNothingAction();
 				//log("Doing nothing");
@@ -138,98 +144,94 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			}
 			
 			// Asteroid is much more convenient than enemy at this time
-			if (propKnowledge.getDistanceToAsteroid() < propKnowledge.SHORT_DISTANCE && propKnowledge.getDistanceToEnemy() > propKnowledge.SHORT_DISTANCE
-					//|| propKnowledge.getDistanceToEnemy() - propKnowledge.getDistanceToAsteroid() < 250
-					|| propKnowledge.getNearestEnemy() == null) {
+			if (propositionalKnowledge.getDistanceToAsteroid() < propositionalKnowledge.SHORT_DISTANCE && propositionalKnowledge.getDistanceToEnemy() > propositionalKnowledge.SHORT_DISTANCE
+					//|| propositionalKnowledge.getDistanceToEnemy() - propositionalKnowledge.getDistanceToAsteroid() < 250
+					|| relationalKnowledge.getNearestEnemy() == null) {
 				willShoot = false;
-				newAction = fasterMoveToObjectAction(space, propKnowledge.getNearestAsteroid());
+				newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestAsteroid());
 				//log("Moving toward asteroid. Gonna get me some money.");
 				return newAction;
 			} 
 			
 			// Go for the enemy!
-			willShoot = propKnowledge.getDistanceToEnemy() <= propKnowledge.LARGE_DISTANCE ? true : false;
-			newAction = fasterMoveToObjectAction(space, propKnowledge.getNearestEnemy());
-			propKnowledge.setCurrentTargetEnemy(propKnowledge.getNearestEnemy());
-			//log("Moving toward new enemy, attempting to annihilate new target: " + propKnowledge.getCurrentTargetEnemy().getTeamName());
+			willShoot = propositionalKnowledge.getDistanceToEnemy() <= propositionalKnowledge.LARGE_DISTANCE ? true : false;
+			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestEnemy());
+			relationalKnowledge.setCurrentTargetEnemy(relationalKnowledge.getNearestEnemy());
+			//log("Moving toward new enemy, attempting to annihilate new target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
 			return newAction;
 		} 
 
-		// return the current action if we cannot determine a new action
 		/*if (ship.getCurrentAction() instanceof MoveToObjectAction) {
 			log("Going to old goal object: " + ((MoveToObjectAction)ship.getCurrentAction()).getGoalObject());
 		} else {
 			log("Performing same old action: " + ship.getCurrentAction());
 		}*/
+		
+		// return the current action if we cannot determine a new action
 		return ship.getCurrentAction();
 	}
 	
+	/** 
+	 *  Convenience method to move at a higher velocity than other ships.
+	 *  This is done by essentially multiplying the distance vector by a certain scale, 
+	 *  and aiming for a "ghost object" at the new position, which causes the ship to move
+	 *  more quickly. Adjustments are made to the scale when new positions go off the map, 
+	 *  which would otherwise cause erratic behavior. 
+	 * 
+	 * 
+	 * @param space Current space instance
+	 * @param goalObject Object toward which we are moving
+	 * @return
+	 */
 	private AbstractAction fasterMoveToObjectAction(Toroidal2DPhysics space, AbstractObject goalObject) {
+		// If ship is low on energy, move at regular speed toward beacon
+		if (propositionalKnowledge.getCurrentEnergy() < 500) {
+			return new MoveToObjectAction(space, propositionalKnowledge.getCurrentPosition(), goalObject);
+		}
+		
+		// Determine multiple based on object. Use smaller value for Beacon so we don't expend too much energy and die.
 		double MOVEMENT_COMPENSATION_FACTOR = goalObject instanceof Beacon ? 3.0 : 4.0;
 
-		final Vector2D distanceToGoalObject = space.findShortestDistanceVector(propKnowledge.getCurrentPosition(), goalObject.getPosition());
+		final Vector2D distanceToGoalObject = space.findShortestDistanceVector(propositionalKnowledge.getCurrentPosition(), goalObject.getPosition());
 		
 		Vector2D distanceToGhostObject = distanceToGoalObject;
 		AbstractObject ghostObject = goalObject.deepClone();
 		Position ghostPosition = ghostObject.getPosition();
 
 		do {
+			// Adjust compensation factor on every iteration of loop
 			MOVEMENT_COMPENSATION_FACTOR -= 0.5;
 			
-			distanceToGhostObject.setX(distanceToGoalObject.getXValue() * MOVEMENT_COMPENSATION_FACTOR);
-			distanceToGhostObject.setY(distanceToGoalObject.getYValue() * MOVEMENT_COMPENSATION_FACTOR);
+			// Create the "ghost object" and determine its appropriate position as described above
+			distanceToGhostObject = distanceToGoalObject.multiply(MOVEMENT_COMPENSATION_FACTOR);
 			
 			ghostPosition.setX(goalObject.getPosition().getX() + distanceToGhostObject.getXValue());
 			ghostPosition.setY(goalObject.getPosition().getY() + distanceToGhostObject.getYValue());
 			
 			ghostObject.setPosition(ghostPosition);
 			
-			if (MOVEMENT_COMPENSATION_FACTOR == 0) {
-				return new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), goalObject);
+			if (MOVEMENT_COMPENSATION_FACTOR <= 0) {
+				// We are close to an edge, just go for the original object
+				return new MoveToObjectAction(space, propositionalKnowledge.getCurrentPosition(), goalObject);
 			}
-			
-		} while (ghostPosition.getX() > space.getWidth() || ghostPosition.getX() < 0 || 
+		} while (ghostPosition.getX() > space.getWidth() || ghostPosition.getX() < 0 ||  // Out of bounds
 				ghostPosition.getY() > space.getHeight() || ghostPosition.getY() < 0 || 
-				space.findShortestDistance(propKnowledge.getCurrentPosition(), ghostPosition) < 
-				(MOVEMENT_COMPENSATION_FACTOR+1) * space.findShortestDistance(propKnowledge.getCurrentPosition(), goalObject.getPosition()));
+				// If shortest distance to ghost object is not as expected, it means we are close to an edge
+				space.findShortestDistance(propositionalKnowledge.getCurrentPosition(), ghostPosition) < 
+				(MOVEMENT_COMPENSATION_FACTOR+1) * space.findShortestDistance(propositionalKnowledge.getCurrentPosition(), goalObject.getPosition()));
 		
-		if (goalObject instanceof Ship && space.findShortestDistance(propKnowledge.getCurrentPosition(), goalObject.getPosition()) < propKnowledge.LARGE_DISTANCE) {
-			return new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), goalObject);
+		// Slow down to normal speed for ships once we get close, because we are shooting, not running into them
+		if (goalObject instanceof Ship && space.findShortestDistance(propositionalKnowledge.getCurrentPosition(), goalObject.getPosition()) < propositionalKnowledge.LARGE_DISTANCE) {
+			return new MoveToObjectAction(space, propositionalKnowledge.getCurrentPosition(), goalObject);
 		}
 			
 		// If goal object's position is closer than ghost object's position, just target goal object
-		return new MoveToObjectAction(space, propKnowledge.getCurrentPosition(), ghostObject);
+		return new MoveToObjectAction(space, propositionalKnowledge.getCurrentPosition(), ghostObject);
 	}
 	
-	/**
-	 * Helper method for logging messages
-	 * 
-	 * @param logMessage Message to be logged
-	 */
-	private void log(String logMessage) {
-		System.out.println(logMessage);
-	}
-
-	@Override
-	public void initialize(Toroidal2DPhysics space) {
-		propKnowledge = new PropositionalRepresentation();
-	}
-
-	@Override
-	public void shutDown(Toroidal2DPhysics space) {
-		// ...
-
-	}
-
-	@Override
-	public Set<SpacewarGraphics> getGraphics() {
-		// ...
-		return null;
-	}
-
 	@Override
 	/**
-	 * If we have the resources, buy weapons, energy capacity, bases, healing, emp, in that order
+	 * If we have the resources, upgrade weapons, energy capacity, in that order
 	 */
 	public Map<UUID, PurchaseTypes> getTeamPurchases(Toroidal2DPhysics space,
 			Set<AbstractActionableObject> actionableObjects, 
@@ -264,11 +266,58 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 		return purchases;
 	}
+	
+	/**
+	 * Helper method for logging messages
+	 * 
+	 * @param logMessage Message to be logged
+	 */
+	private void log(String logMessage) {
+		System.out.println(logMessage);
+	}
 
+	@Override
+	/** 
+	 * Upon initialization, also initialize objects used for representing knowledge of the world
+	 * 
+	 * @param space Current space instance
+	 */
+	public void initialize(Toroidal2DPhysics space) {
+		propositionalKnowledge = new PropositionalRepresentation();
+		relationalKnowledge = new RelationalRepresentation();
+	}
 
+	/**
+	 * The No Survivors client shoots if there is an enemy nearby
+	 * 
+	 * @param space Current space instance
+	 * @param actionableObjects Set of actionable objects
+	 * 
+	 * @return Map of UUID of actionable object to SpaceSettlersPoweropEnum
+	 */
 	@Override
 	public Map<UUID, SpaceSettlersPowerupEnum> getPowerups(Toroidal2DPhysics space,
 			Set<AbstractActionableObject> actionableObjects) {
+		HashMap<UUID, SpaceSettlersPowerupEnum> powerUps = new HashMap<UUID, SpaceSettlersPowerupEnum>();
+
+		Random random = new Random();
+		for (AbstractActionableObject actionableObject : actionableObjects) {
+			SpaceSettlersPowerupEnum powerup = SpaceSettlersPowerupEnum.values()[random.nextInt(SpaceSettlersPowerupEnum.values().length)];
+			if (actionableObject.isValidPowerup(powerup) && random.nextDouble() < weaponsProbability && willShoot) {
+				powerUps.put(actionableObject.getId(), powerup);
+			}
+		}
+		
+		return powerUps;
+	}
+	
+	@Override
+	public void shutDown(Toroidal2DPhysics space) {
+		// ...
+	}
+
+	@Override
+	public Set<SpacewarGraphics> getGraphics() {
 		// ...
 		return null;
 	}
