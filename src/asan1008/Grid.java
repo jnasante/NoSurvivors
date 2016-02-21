@@ -1,8 +1,14 @@
 package asan1008;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
+
 import javafx.util.Pair;
 import spacesettlers.objects.AbstractObject;
 import spacesettlers.objects.Asteroid;
@@ -16,12 +22,15 @@ public class Grid {
 	public Map<Pair<Integer, Integer>, GridNode> nodes;
 	public Map<GridNode, ArrayList<GridNode>> adjacencyMap;
 	public AbstractObject goal;
+	private Ship ship;
+	private final int MAXIMUM_SEARCH_DEPTH = 100;
 	
 	public Grid(Toroidal2DPhysics space, Ship ship, AbstractObject goal){
 		nodes = new HashMap<Pair<Integer,Integer>, GridNode>();
 		divideSpace(space, goal);
 		markOccupiedNodes(space, goal);
-		getNodeByObject(goal).sethValue(0);
+		getNodeByObject(goal).setHValue(0);
+		this.ship = ship;
 	}
 	
 	public void divideSpace(Toroidal2DPhysics space, AbstractObject goal){
@@ -54,4 +63,67 @@ public class Grid {
 	public GridNode getNodeByObject(AbstractObject object) {
 		return nodes.get(getKeyPair(object.getPosition()));
 	}
+	
+	/**
+	 * A* search
+	 * 
+	 * @return The optimal path of free nodes for us to traverse to get to the goal
+	 */
+	public LinkedList<GridNode> getPathToGoal() {
+		LinkedList<GridNode> path = new LinkedList<GridNode>();
+		
+		// Create the fringe
+		PriorityQueue<GridNode> fringe = new PriorityQueue<>(new Comparator<GridNode>() {
+			@Override
+			public int compare(GridNode node1, GridNode node2) {
+				if (node1.getFValue() < node2.getFValue()) {
+					return -1;
+				}
+				
+				if (node1.getFValue() > node2.getFValue()) {
+					return 1;
+				}
+				
+				return 0;
+			}
+		});
+		
+		// Create the closed set and add current node
+		HashSet<GridNode> closed = new HashSet<>();		
+		
+		closed.add(getNodeByObject(ship)); // Add current node to closed
+		fringe.addAll(adjacencyMap.get(getNodeByObject(ship))); // Add children of start node to fringe
+		
+		while (true) {
+			if (fringe.isEmpty()) {
+				return null; // There is nowhere for us to go
+			}
+			
+			GridNode nextNode = fringe.poll();
+			
+			if (!closed.contains(nextNode)) {
+				path.add(nextNode);
+			}
+			
+			if (nextNode == getNodeByObject(goal)) {
+				return path; // If the next node is the goal, end A*
+			} else if (!closed.contains(nextNode)) {
+				closed.add(nextNode);
+				for (GridNode node : adjacencyMap.get(nextNode)) {
+					if (closed.contains(node)) {
+						continue;
+					}
+					
+					fringe.add(node);
+				}
+			}
+			
+			if (closed.size() >= MAXIMUM_SEARCH_DEPTH) {
+				return null; // At this point, we most likely cannot access the goal object
+			}
+		}
+	}
+	
 }
+
+
