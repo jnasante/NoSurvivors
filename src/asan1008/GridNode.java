@@ -1,17 +1,25 @@
 package asan1008;
 
+import spacesettlers.objects.AbstractObject;
+import spacesettlers.simulator.Toroidal2DPhysics;
+import spacesettlers.utilities.Position;
+
 public class GridNode {
 	private double x1, x2, y1, y2;
 	private double hValue;
 	private boolean free;
 	
-	public GridNode(double x1, double x2, double y1, double y2, double hValue) {
+	public GridNode(double x1, double x2, double y1, double y2, Toroidal2DPhysics space, AbstractObject goal) {
 		this.x1 = x1;
 		this.x2 = x2;
 		this.y1 = y1;
 		this.y2 = y2;
-		this.hValue = hValue;
 		this.free = true;
+		this.hValue = space.findShortestDistance(getPosition(), goal.getPosition());
+	}
+	
+	public Position getPosition(){
+		return new Position((x1+x2)/2, (y1+y2)/2);
 	}
 
 	public double getX1() {
