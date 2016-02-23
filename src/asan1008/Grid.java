@@ -7,8 +7,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Queue;
-
 import javafx.util.Pair;
 import spacesettlers.objects.AbstractObject;
 import spacesettlers.objects.Asteroid;
@@ -18,7 +16,7 @@ import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 
 public class Grid {
-	public static final int GRID_SIZE = 40;
+	public static final int GRID_NODE_SIZE = 40;
 	public Map<Pair<Integer, Integer>, GridNode> nodes;
 	public Map<GridNode, ArrayList<GridNode>> adjacencyMap;
 	public AbstractObject goal;
@@ -29,14 +27,15 @@ public class Grid {
 		nodes = new HashMap<Pair<Integer,Integer>, GridNode>();
 		divideSpace(space, goal);
 		markOccupiedNodes(space, goal);
+		initializeAdjacencyMap(space.getWidth(), space.getHeight());
 		getNodeByObject(goal).setHValue(0);
 		this.ship = ship;
 	}
 	
 	public void divideSpace(Toroidal2DPhysics space, AbstractObject goal){
-		for(int i = 0; i < space.getWidth(); i+=GRID_SIZE){
-			for(int j = 0; j < space.getHeight(); j+=GRID_SIZE){
-				GridNode node = new GridNode(i, i+GRID_SIZE, j, j+GRID_SIZE, space, goal);
+		for(int i = 0; i < space.getWidth(); i+=GRID_NODE_SIZE){
+			for(int j = 0; j < space.getHeight(); j+=GRID_NODE_SIZE){
+				GridNode node = new GridNode(i, i+GRID_NODE_SIZE, j, j+GRID_NODE_SIZE, space, goal);
 				nodes.put(new Pair<Integer, Integer>(i, j), node);
 			}
 		}
@@ -53,10 +52,53 @@ public class Grid {
 			getNodeByObject(object).setFree(false);
 		}
 	}
+	
+	public void initializeAdjacencyMap(double width, double height) {
+		for(GridNode node: nodes.values()) {
+			ArrayList<GridNode> neighbors = new ArrayList<GridNode>();
+			
+			double topPosition = node.getY1()-GRID_NODE_SIZE;
+			double leftPosition = node.getX1()-GRID_NODE_SIZE;
+			double rightPosition = node.getX1()+GRID_NODE_SIZE;
+			double bottomPosition = node.getY1()+GRID_NODE_SIZE;
+			
+			boolean top = (topPosition < 0) ? false : true;
+			boolean left = (leftPosition < 0) ? false : true;
+			boolean right = (rightPosition > width) ? false : true;
+			boolean bottom = (bottomPosition > height) ? false : true;
+
+			if(left) {
+				neighbors.add(nodes.get(getKeyPair(new Position(leftPosition, node.getY1()))));
+			}
+			if(top){
+				neighbors.add(nodes.get(getKeyPair(new Position(node.getX1(), topPosition))));
+				if(left) {
+					neighbors.add(nodes.get(getKeyPair(new Position(leftPosition, topPosition))));
+				}
+				if(right) {
+					neighbors.add(nodes.get(getKeyPair(new Position(rightPosition, topPosition))));
+				}
+			}
+			if(right) {
+				neighbors.add(nodes.get(getKeyPair(new Position(rightPosition, node.getY1()))));
+			}
+			if(bottom){
+				neighbors.add(nodes.get(getKeyPair(new Position(node.getX1(), bottomPosition))));
+				if(left) {
+					neighbors.add(nodes.get(getKeyPair(new Position(leftPosition, bottomPosition))));
+				}
+				if(right) {
+					neighbors.add(nodes.get(getKeyPair(new Position(rightPosition, bottomPosition))));
+				}
+			}
+			
+			adjacencyMap.put(node, neighbors);
+		}
+	}
 
 	public Pair<Integer, Integer> getKeyPair(Position position) {
-		int xPosition = (int) (position.getX() - (position.getX() % GRID_SIZE));
-		int yPosition = (int) (position.getY() - (position.getY() % GRID_SIZE));
+		int xPosition = (int) (position.getX() - (position.getX() % GRID_NODE_SIZE));
+		int yPosition = (int) (position.getY() - (position.getY() % GRID_NODE_SIZE));
 		return new Pair<Integer, Integer>(xPosition, yPosition);
 	}
 	
@@ -73,7 +115,7 @@ public class Grid {
 		LinkedList<GridNode> path = new LinkedList<GridNode>();
 		
 		// Create the fringe
-		PriorityQueue<GridNode> fringe = new PriorityQueue<>(new Comparator<GridNode>() {
+		PriorityQueue<GridNode> fringe = new PriorityQueue<GridNode>(new Comparator<GridNode>() {
 			@Override
 			public int compare(GridNode node1, GridNode node2) {
 				if (node1.getFValue() < node2.getFValue()) {
@@ -89,7 +131,7 @@ public class Grid {
 		});
 		
 		// Create the closed set and add current node
-		HashSet<GridNode> closed = new HashSet<>();		
+		HashSet<GridNode> closed = new HashSet<GridNode>();		
 		
 		closed.add(getNodeByObject(ship)); // Add current node to closed
 		fringe.addAll(adjacencyMap.get(getNodeByObject(ship))); // Add children of start node to fringe
