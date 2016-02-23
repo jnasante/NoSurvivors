@@ -111,8 +111,9 @@ public class Grid {
 	 * 
 	 * @return The optimal path of free nodes for us to traverse to get to the goal
 	 */
-	public LinkedList<GridNode> getPathToGoal() {
+	public LinkedList<GridNode> getPathToGoal(Toroidal2DPhysics space) {
 		LinkedList<GridNode> path = new LinkedList<GridNode>();
+		double pathCost = 0;
 		
 		// Create the fringe
 		PriorityQueue<GridNode> fringe = new PriorityQueue<GridNode>(new Comparator<GridNode>() {
@@ -133,8 +134,13 @@ public class Grid {
 		// Create the closed set and add current node
 		HashSet<GridNode> closed = new HashSet<GridNode>();		
 		
-		closed.add(getNodeByObject(ship)); // Add current node to closed
-		fringe.addAll(adjacencyMap.get(getNodeByObject(ship))); // Add children of start node to fringe
+		// Add current node to closed
+		closed.add(getNodeByObject(ship)); 
+		// Add children of start node to fringe
+		for (GridNode node : adjacencyMap.get(getNodeByObject(ship))) {
+			node.setGValue(space.findShortestDistance(getNodeByObject(ship).getPosition(), node.getPosition()));
+			fringe.add(node);
+		}
 		
 		while (true) {
 			if (fringe.isEmpty()) {
@@ -155,7 +161,7 @@ public class Grid {
 					if (closed.contains(node)) {
 						continue;
 					}
-					
+					node.setGValue(nextNode.getGValue() + space.findShortestDistance(nextNode.getPosition(), node.getPosition()));
 					fringe.add(node);
 				}
 			}

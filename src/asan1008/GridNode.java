@@ -7,7 +7,7 @@ import spacesettlers.utilities.Position;
 public class GridNode {
 	private double x1, x2, y1, y2;
 	private double hValue;
-	private double fValue;
+	private double gValue;
 	private boolean free;
 	
 	public GridNode(double x1, double x2, double y1, double y2, Toroidal2DPhysics space, AbstractObject goal) {
@@ -43,15 +43,19 @@ public class GridNode {
 	}
 
 	public double getFValue() {
-		return hValue;
+		return hValue + gValue;
 	}
 
 	public void setHValue(double hValue) {
 		this.hValue = hValue;
 	}
 
-	public void setFValue(double fValue) {
-		this.fValue = fValue;
+	public void setGValue(double gValue) {
+		this.gValue = gValue;
+	}
+	
+	public double getGValue() {
+		return gValue;
 	}
 
 	public boolean isFree() {
