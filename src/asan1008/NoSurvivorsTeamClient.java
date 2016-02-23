@@ -86,7 +86,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		}
 
 		// If we don't have enough fuel, locate nearest fuel source
-		if (ship.getEnergy() < 2000 && ship.isAlive()) {
+		if (ship.getEnergy() < 1500 && ship.isAlive()) {
 			if (relationalKnowledge.getNearestBeacon() != null) {
 
 				// Going to recharge, release target enemy
