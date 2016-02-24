@@ -136,6 +136,7 @@ public class Grid {
 		
 		// Add current node to closed
 		closed.add(getNodeByObject(ship)); 
+		
 		// Add children of start node to fringe
 		for (GridNode node : adjacencyMap.get(getNodeByObject(ship))) {
 			node.setGValue(space.findShortestDistance(getNodeByObject(ship).getPosition(), node.getPosition()));
@@ -161,6 +162,7 @@ public class Grid {
 					if (closed.contains(node)) {
 						continue;
 					}
+					
 					node.setGValue(nextNode.getGValue() + space.findShortestDistance(nextNode.getPosition(), node.getPosition()));
 					fringe.add(node);
 				}
