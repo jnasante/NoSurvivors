@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -106,6 +108,24 @@ public class Grid {
 		return nodes.get(getKeyPair(object.getPosition()));
 	}
 	
+	public GridNode removeMinFromFringe(HashMap<GridNode, Double> fringe) {		
+		GridNode currentMinNode = null;
+		
+		for (GridNode node : fringe.keySet()) {
+			if (currentMinNode == null) {
+				currentMinNode = node;
+				continue;
+			}
+			
+			if (fringe.get(node) < fringe.get(currentMinNode)) {
+				currentMinNode = node;
+			}
+		}
+		
+		if (currentMinNode != null) fringe.remove(currentMinNode);
+		return currentMinNode;
+	}
+	
 	/**
 	 * A* search
 	 * 
@@ -116,20 +136,10 @@ public class Grid {
 		double pathCost = 0;
 		
 		// Create the fringe
-		PriorityQueue<GridNode> fringe = new PriorityQueue<GridNode>(new Comparator<GridNode>() {
-			@Override
-			public int compare(GridNode node1, GridNode node2) {
-				if (node1.getFValue() < node2.getFValue()) {
-					return -1;
-				}
-				
-				if (node1.getFValue() > node2.getFValue()) {
-					return 1;
-				}
-				
-				return 0;
-			}
-		});
+		HashMap<GridNode, Double> fringe = new HashMap<GridNode, Double>();
+		
+		
+		
 		
 		// Create the closed set and add current node
 		HashSet<GridNode> closed = new HashSet<GridNode>();		
@@ -140,7 +150,7 @@ public class Grid {
 		// Add children of start node to fringe
 		for (GridNode node : adjacencyMap.get(getNodeByObject(ship))) {
 			node.setGValue(space.findShortestDistance(getNodeByObject(ship).getPosition(), node.getPosition()));
-			fringe.add(node);
+			fringe.put(node, node.getFValue());
 		}
 		
 		while (true) {
@@ -148,7 +158,7 @@ public class Grid {
 				return null; // There is nowhere for us to go
 			}
 			
-			GridNode nextNode = fringe.poll();
+			GridNode nextNode = removeMinFromFringe(fringe);
 			
 			if (!closed.contains(nextNode)) {
 				path.add(nextNode);
@@ -164,7 +174,11 @@ public class Grid {
 					}
 					
 					node.setGValue(nextNode.getGValue() + space.findShortestDistance(nextNode.getPosition(), node.getPosition()));
-					fringe.add(node);
+					
+					// TODO: this may not work. Now the two nodes are different because of different F/G values. Check it b4 u wreck it!
+					if (!fringe.containsKey(node) || fringe.get(node) < node.getFValue()) {
+						fringe.put(node, node.getFValue());
+					}
 				}
 			}
 			
