@@ -1,6 +1,8 @@
 package asan1008;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -8,6 +10,7 @@ import java.util.UUID;
 
 import spacesettlers.actions.AbstractAction;
 import spacesettlers.actions.DoNothingAction;
+import spacesettlers.actions.MoveAction;
 import spacesettlers.actions.MoveToObjectAction;
 import spacesettlers.actions.PurchaseCosts;
 import spacesettlers.actions.PurchaseTypes;
@@ -30,6 +33,7 @@ import spacesettlers.utilities.Vector2D;
 public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	PropositionalRepresentation propositionalKnowledge;
 	RelationalRepresentation relationalKnowledge;
+	ArrayList<SpacewarGraphics> graphicsToAdd;
 
 	// Powerups
 	double weaponsProbability = 1;
@@ -42,12 +46,21 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	public Map<UUID, AbstractAction> getMovementStart(Toroidal2DPhysics space,
 			Set<AbstractActionableObject> actionableObjects) {
 		HashMap<UUID, AbstractAction> actions = new HashMap<UUID, AbstractAction>();
+		graphicsToAdd = new ArrayList<SpacewarGraphics>();
 
 		for (AbstractObject actionable : actionableObjects) {
 			if (actionable instanceof Ship) {
 				Ship ship = (Ship) actionable;
 
 				AbstractAction action = getAggressiveAction(space, ship);
+				if(propositionalKnowledge.shouldPlan()){
+					log("should plan");
+					if (action instanceof MoveToObjectAction && ((MoveToObjectAction)action).getGoalObject() != null) {
+						log("is planning");
+						Grid grid = new Grid(space, ship, ((MoveToObjectAction)action).getGoalObject());
+						graphicsToAdd = grid.drawPath(grid.getPathToGoal(space), space);
+					}
+				}
 				actions.put(ship.getId(), action);
 
 			} else {
@@ -61,6 +74,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 	@Override
 	public void getMovementEnd(Toroidal2DPhysics space, Set<AbstractActionableObject> actionableObjects) {
+		
 	}
 
 	/**
@@ -351,7 +365,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 	@Override
 	public Set<SpacewarGraphics> getGraphics() {
-		// ...
-		return null;
+		HashSet<SpacewarGraphics> graphics = new HashSet<SpacewarGraphics>();
+		graphics.addAll(graphicsToAdd);
+		return graphics;
 	}
 }

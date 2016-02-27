@@ -7,6 +7,7 @@ import spacesettlers.utilities.Position;
 public class PropositionalRepresentation {
 	
 	// Current given information
+	private double tick = 0;
 	private Position currentPosition;
 	private double currentEnergy;
 	
@@ -31,7 +32,8 @@ public class PropositionalRepresentation {
 	public void updateRepresentation(RelationalRepresentation relationalRepresentation, Toroidal2DPhysics space, Ship ship) {
 		currentPosition = ship.getPosition();
 		currentEnergy = ship.getEnergy();
-
+		tick++;
+		
 		distanceToEnemy = relationalRepresentation.getNearestEnemy() == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(currentPosition, relationalRepresentation.getNearestEnemy().getPosition());
 		distanceToBase = relationalRepresentation.getNearestBase() == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(ship.getPosition(), relationalRepresentation.getNearestBase().getPosition());
 		distanceToBeacon = relationalRepresentation.getNearestBeacon() == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(ship.getPosition(), relationalRepresentation.getNearestBeacon().getPosition());
@@ -87,6 +89,10 @@ public class PropositionalRepresentation {
 	 */
 	protected double getDistanceBetweenTargetBeaconAndEnemy() {
 		return distanceBetweenTargetBeaconAndEnemy;
+	}
+	
+	protected boolean shouldPlan() {
+		return (tick % 10 == 0) ? true : false;
 	}
 	
 }
