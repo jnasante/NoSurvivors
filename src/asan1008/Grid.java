@@ -1,14 +1,10 @@
 package asan1008;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.PriorityQueue;
 import javafx.util.Pair;
 import spacesettlers.objects.AbstractObject;
 import spacesettlers.objects.Asteroid;
@@ -132,53 +128,53 @@ public class Grid {
 	 * @return The optimal path of free nodes for us to traverse to get to the goal
 	 */
 	public LinkedList<GridNode> getPathToGoal(Toroidal2DPhysics space) {
-		LinkedList<GridNode> path = new LinkedList<GridNode>();
-		double pathCost = 0;
+		// starting node
+		GridNode start = getNodeByObject(ship);
 		
-		// Create the fringe
+		// Create map of a node to the most efficient node to reach it from the start
+		HashMap<GridNode, GridNode> cameFrom = new HashMap<GridNode, GridNode>();
+		
+		// Create the fringe, which maps nodes to fValues
 		HashMap<GridNode, Double> fringe = new HashMap<GridNode, Double>();
 		
+		// Add start to fringe
+		fringe.put(start, start.getHValue());
 		
+		// Create a map from nodes to gValues
+		HashMap<GridNode, Double> gValueMap = new HashMap<GridNode, Double>();
 		
+		// add current node to gValue map
+		gValueMap.put(start, 0.0);
 		
 		// Create the closed set and add current node
 		HashSet<GridNode> closed = new HashSet<GridNode>();		
-		
-		// Add current node to closed
-		closed.add(getNodeByObject(ship)); 
-		
-		// Add children of start node to fringe
-		for (GridNode node : adjacencyMap.get(getNodeByObject(ship))) {
-			node.setGValue(space.findShortestDistance(getNodeByObject(ship).getPosition(), node.getPosition()));
-			fringe.put(node, node.getFValue());
-		}
 		
 		while (true) {
 			if (fringe.isEmpty()) {
 				return null; // There is nowhere for us to go
 			}
 			
-			GridNode nextNode = removeMinFromFringe(fringe);
+			GridNode current = removeMinFromFringe(fringe);
 			
-			if (!closed.contains(nextNode)) {
-				path.add(nextNode);
-			}
-			
-			if (nextNode == getNodeByObject(goal)) {
-				return path; // If the next node is the goal, end A*
-			} else if (!closed.contains(nextNode)) {
-				closed.add(nextNode);
-				for (GridNode node : adjacencyMap.get(nextNode)) {
+			if (current.equals(getNodeByObject(goal))) {
+				return constructPath(cameFrom, current); // If the next node is the goal, end A*
+			} else if (!closed.contains(current)) {
+				closed.add(current);
+				for (GridNode node : adjacencyMap.get(current)) {
 					if (closed.contains(node)) {
 						continue;
 					}
 					
-					node.setGValue(nextNode.getGValue() + space.findShortestDistance(nextNode.getPosition(), node.getPosition()));
-					
-					// TODO: this may not work. Now the two nodes are different because of different F/G values. Check it b4 u wreck it!
-					if (!fringe.containsKey(node) || fringe.get(node) < node.getFValue()) {
-						fringe.put(node, node.getFValue());
+					double possibleGValue = gValueMap.get(current) + space.findShortestDistance(current.getPosition(), node.getPosition());
+					double possibleFValue = node.getHValue() + possibleGValue;
+					// TODO: this may not work. Now the two nodes are different because of different F/G values.
+					if (!fringe.containsKey(node)){
+						fringe.put(node, node.getHValue() + possibleGValue);
+					} else if(fringe.get(node) < possibleFValue) {
+						fringe.put(node, possibleFValue);
 					}
+					cameFrom.put(node, current);
+					gValueMap.put(node, possibleGValue);
 				}
 			}
 			
@@ -188,6 +184,15 @@ public class Grid {
 		}
 	}
 	
+	public LinkedList<GridNode> constructPath(HashMap<GridNode, GridNode> cameFrom, GridNode current) {
+		LinkedList<GridNode> path = new LinkedList<GridNode>();
+		path.add(current);
+		while(cameFrom.containsKey(current)){
+			current = cameFrom.get(current);
+			path.add(current);
+		}
+		return path;
+	}
 }
 
 
