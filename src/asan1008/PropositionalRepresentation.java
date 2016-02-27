@@ -9,7 +9,6 @@ public class PropositionalRepresentation {
 	// Current given information
 	private double tick = 0;
 	private Position currentPosition;
-	private double currentEnergy;
 	
 	// Calculated distances
 	private double distanceToEnemy;
@@ -31,7 +30,6 @@ public class PropositionalRepresentation {
 	 */
 	public void updateRepresentation(RelationalRepresentation relationalRepresentation, Toroidal2DPhysics space, Ship ship) {
 		currentPosition = ship.getPosition();
-		currentEnergy = ship.getEnergy();
 		tick++;
 		
 		distanceToEnemy = relationalRepresentation.getNearestEnemy() == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(currentPosition, relationalRepresentation.getNearestEnemy().getPosition());
@@ -49,13 +47,6 @@ public class PropositionalRepresentation {
 		return currentPosition;
 	}
 	
-	/**
-	 * Getter for currentEnergy
-	 */
-	protected double getCurrentEnergy() {
-		return currentEnergy;
-	}
-
 	/**
 	 * Getter for distanceToEnemy
 	 */

@@ -20,12 +20,12 @@ import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 
 public class Grid {
-	public static final int GRID_NODE_SIZE = 40;
+	public static final int GRID_NODE_SIZE = 20;
 	public HashMap<Pair<Integer, Integer>, GridNode> nodes;
 	public HashMap<GridNode, ArrayList<GridNode>> adjacencyMap;
 	public AbstractObject goal;
 	private Ship ship;
-	private final int MAXIMUM_SEARCH_DEPTH = 100;
+	private final int MAXIMUM_SEARCH_SIZE = 300;
 	public ArrayList<SpacewarGraphics> graphicsToAdd;
 	
 	public Grid(Toroidal2DPhysics space, Ship ship, AbstractObject goal){
@@ -110,7 +110,7 @@ public class Grid {
 		return new Pair<Integer, Integer>(xPosition, yPosition);
 	}
 	
-	private GridNode getNodeByObject(AbstractObject object) {
+	protected GridNode getNodeByObject(AbstractObject object) {
 		return nodes.get(getKeyPair(object.getPosition()));
 	}
 	
@@ -188,7 +188,7 @@ public class Grid {
 				}
 			}
 			
-			if (closed.size() >= MAXIMUM_SEARCH_DEPTH) {
+			if (closed.size() >= MAXIMUM_SEARCH_SIZE) {
 				return null; // At this point, we most likely cannot access the goal object
 			}
 		}
