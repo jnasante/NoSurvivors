@@ -4,6 +4,10 @@ import spacesettlers.objects.AbstractObject;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 
+/**
+ * 
+ *
+ */
 public class GridNode {
 	private double x1, x2, y1, y2;
 	private double hValue;

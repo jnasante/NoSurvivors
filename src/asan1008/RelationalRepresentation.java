@@ -8,6 +8,10 @@ import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
 import spacesettlers.simulator.Toroidal2DPhysics;
 
+/** 
+ * 
+ *
+ */
 public class RelationalRepresentation {
 	
 	// Nearest and target objects

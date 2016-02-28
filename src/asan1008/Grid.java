@@ -19,6 +19,10 @@ import spacesettlers.objects.Ship;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 
+/** 
+ * 
+ *
+ */
 public class Grid {
 	public static final int GRID_NODE_SIZE = 20;
 	public HashMap<Pair<Integer, Integer>, GridNode> nodes;
@@ -27,8 +31,13 @@ public class Grid {
 	private Ship ship;
 	private final int MAXIMUM_SEARCH_SIZE = 300;
 	public ArrayList<SpacewarGraphics> graphicsToAdd;
+	private boolean shouldIgnoreMineableAsteroids = true;
 	
-	public Grid(Toroidal2DPhysics space, Ship ship, AbstractObject goal){
+	public Grid(Toroidal2DPhysics space, Ship ship, AbstractObject goal) {
+		this(space, ship, goal, true);
+	}
+	
+	public Grid(Toroidal2DPhysics space, Ship ship, AbstractObject goal, boolean shouldIgnoreMineableAsteroids){
 		this.goal = goal;
 		graphicsToAdd = new ArrayList<SpacewarGraphics>();
 		nodes = new HashMap<Pair<Integer,Integer>, GridNode>();
@@ -38,6 +47,7 @@ public class Grid {
 		initializeAdjacencyMap(space.getWidth(), space.getHeight());
 		getNodeByObject(goal).setHValue(0);
 		this.ship = ship;
+		this.shouldIgnoreMineableAsteroids = shouldIgnoreMineableAsteroids;
 	}
 	
 	private void divideSpace(Toroidal2DPhysics space, AbstractObject goal){
@@ -52,7 +62,7 @@ public class Grid {
 	private void markOccupiedNodes(Toroidal2DPhysics space, AbstractObject goal) {
 		for( AbstractObject object : space.getAllObjects() ) {
 			if( object instanceof Beacon || 
-					(object instanceof Asteroid && ((Asteroid)object).isMineable()) || 
+					(object instanceof Asteroid && ((Asteroid)object).isMineable() && shouldIgnoreMineableAsteroids) || 
 					object.getId() == goal.getId()){
 				continue;
 			}
