@@ -131,33 +131,60 @@ public class Grid {
 			boolean left = (leftPosition < 0) ? false : true;
 			boolean right = (rightPosition > width) ? false : true;
 			boolean bottom = (bottomPosition > height) ? false : true;
+			
+			GridNode neighbor;
+			
 
 			if(left) {
-				neighbors.add(nodes.get(getKeyPair(new Position(leftPosition, node.getY1()))));
+				neighbor = nodes.get(getKeyPair(new Position(leftPosition, node.getY1())));
+				if (neighbor != null) neighbors.add(neighbor);
 			}
+			
 			if(top) {
-				neighbors.add(nodes.get(getKeyPair(new Position(node.getX1(), topPosition))));
+				neighbor = nodes.get(getKeyPair(new Position(node.getX1(), topPosition)));
+				if (neighbor != null) neighbors.add(neighbor);
+				
 				if(left) {
-					neighbors.add(nodes.get(getKeyPair(new Position(leftPosition, topPosition))));
+					neighbor = nodes.get(getKeyPair(new Position(leftPosition, topPosition)));
+					if (neighbor != null) neighbors.add(neighbor);
 				}
+				
 				if(right) {
-					neighbors.add(nodes.get(getKeyPair(new Position(rightPosition, topPosition))));
+					neighbor = nodes.get(getKeyPair(new Position(rightPosition, topPosition)));
+					if (neighbor != null) neighbors.add(neighbor);
 				}
 			}
+			
 			if(right) {
-				neighbors.add(nodes.get(getKeyPair(new Position(rightPosition, node.getY1()))));
+				neighbor = nodes.get(getKeyPair(new Position(rightPosition, node.getY1())));
+				if (neighbor != null) neighbors.add(neighbor);
 			}
+			
 			if(bottom){
-				neighbors.add(nodes.get(getKeyPair(new Position(node.getX1(), bottomPosition))));
+				neighbor = nodes.get(getKeyPair(new Position(node.getX1(), bottomPosition)));
+				if (neighbor != null) neighbors.add(neighbor);
+				
 				if(left) {
-					neighbors.add(nodes.get(getKeyPair(new Position(leftPosition, bottomPosition))));
+					neighbor = nodes.get(getKeyPair(new Position(leftPosition, bottomPosition)));
+					if (neighbor != null) neighbors.add(neighbor);
 				}
+				
 				if(right) {
-					neighbors.add(nodes.get(getKeyPair(new Position(rightPosition, bottomPosition))));
+					neighbor = nodes.get(getKeyPair(new Position(rightPosition, bottomPosition)));
+					if (neighbor != null) neighbors.add(neighbor);
+				}
+			}
+			
+			int count = neighbors.size();
+			for (int i = count-1; i >= 0; i--) {
+				if (neighbors.get(i) == null) {
+					neighbors.remove(i);
+					System.out.println("Removed null item");
 				}
 			}
 			
 			adjacencyMap.put(node, neighbors);
+
 		}
 	}
 
@@ -231,11 +258,12 @@ public class Grid {
 				return constructPath(cameFrom, current); // If the next node is the goal, end A*
 			} else if (!closed.contains(current)) {
 				closed.add(current);
+				int count = 0;
 				for (GridNode node : adjacencyMap.get(current)) {
-					if (closed.contains(node)) {
+					if (node == null || closed.contains(node)) {
 						continue;
 					}
-					
+										
 					double possibleGValue = gValueMap.get(current) + space.findShortestDistance(current.getPosition(), node.getPosition());
 					double possibleFValue = node.getHValue() + possibleGValue;
 					

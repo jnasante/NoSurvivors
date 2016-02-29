@@ -249,7 +249,7 @@ public class RelationalRepresentation {
 		double shipX = ship.getPosition().getX();
 		double shipY = ship.getPosition().getY();
 		double orientation = ship.getPosition().getOrientation();
-		if( currentTargetEnemy.getTeamName() != ship.getTeamName()) {
+		if( currentTargetEnemy != null) {
 			double radius = currentTargetEnemy.getRadius();
 			double enemyX = currentTargetEnemy.getPosition().getX();
 			double enemyY = currentTargetEnemy.getPosition().getY();
@@ -279,8 +279,16 @@ public class RelationalRepresentation {
 			double degree2 = Math.toDegrees(Math.atan2(yDist2, xDist2));
 			double radian2 = -((-degree2)*Math.PI/180);
 			
-			if((orientation <= Math.max(radian1, radian2)) && (orientation >= Math.min(radian1, radian2))) {
-				return true;
+			
+			
+			if (radian1*radian2 > 0 || Math.max(radian1, radian2) < Math.PI/2) {
+				if((orientation <= Math.max(radian1, radian2)) && (orientation >= Math.min(radian1, radian2))) {
+					return true;
+				}
+			} else {
+				if((orientation >= Math.max(radian1, radian2)) && (orientation <= Math.min(radian1, radian2))) {
+					return true;
+				}
 			}
 		}
 		return false;

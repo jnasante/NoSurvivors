@@ -10,12 +10,12 @@ import java.util.Set;
 import java.util.UUID;
 import spacesettlers.actions.AbstractAction;
 import spacesettlers.actions.DoNothingAction;
-import spacesettlers.actions.MoveToObjectAction;
 import spacesettlers.actions.PurchaseCosts;
 import spacesettlers.actions.PurchaseTypes;
 import spacesettlers.graphics.SpacewarGraphics;
 import spacesettlers.objects.AbstractActionableObject;
 import spacesettlers.objects.AbstractObject;
+import spacesettlers.objects.Base;
 import spacesettlers.objects.Ship;
 import spacesettlers.objects.powerups.SpaceSettlersPowerupEnum;
 import spacesettlers.objects.resources.ResourcePile;
@@ -53,12 +53,12 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 				AbstractAction action = getAggressiveAction(space, ship);
 				if(propositionalKnowledge.shouldPlan()) {
-					log("should plan");
+					//log("should plan");
 					if (currentGoalObject != null) {
-						log("is planning");
+						//log("is planning");
 						grid = new Grid(space, ship, currentGoalObject, ship.getEnergy() > 500);
 						currentPath = grid.getPathToGoal(space);
-						graphicsToAdd = grid.drawPath(currentPath, space);
+						if (currentPath != null) graphicsToAdd = grid.drawPath(currentPath, space);
 					}
 				}
 				actions.put(ship.getId(), action);
@@ -93,11 +93,14 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		propositionalKnowledge.updateRepresentation(relationalKnowledge, space, ship);
 
 		AbstractAction newAction = null;
+		log("Position: " + ship.getPosition().getX() + ", " + ship.getPosition().getY());
 		
 		//log("X Velocity: " + ship.getPosition().getxVelocity() + "Y Velocity: " + ship.getPosition().getyVelocity());
 
 		if (!ship.isAlive()) {
+			log("But I died");
 			ship.setCurrentAction(null);
+			return new DoNothingAction();
 		}
 		
 		if (grid != null && currentPath != null && !currentPath.isEmpty() && grid.getNodeByObject(ship).getPosition().equals(currentPath.getLast().getPosition())) {
@@ -127,42 +130,63 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					// Beacon is within short distance, or it is closer than the nearest base,
 					// or the base doesn't have enough energy to satisfy our hunger
 					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(), ship);
-					 log("Moving toward beacon at: " + relationalKnowledge.getNearestBeacon().getPosition().getX()
-					 + ", " + relationalKnowledge.getNearestBeacon().getPosition().getY());
+//					 log("Moving toward beacon at: " + relationalKnowledge.getNearestBeacon().getPosition().getX()
+//					 + ", " + relationalKnowledge.getNearestBeacon().getPosition().getY());
 					return newAction;
 				}
 			}
 
 			// There is no beacon, or the base is closer and has enough energy
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(), ship);
-			 log("Moving toward base");
+			log("Moving toward base");
 			return newAction;
+		}
+		
+		// Previous action was to go to base, but we don't need to do that anymore
+		if (ship.getCurrentAction() instanceof FasterMoveToObjectAction) {
+			if (((FasterMoveToObjectAction)ship.getCurrentAction()).getGoalObject() instanceof Base) {
+				ship.setCurrentAction(null);
+			}
 		}
 
 		// if the ship has enough resourcesAvailable, take it back to base
 		if (ship.getResources().getTotal() > 1000) {
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(), ship);
 			willShoot = false;
-			 log("Going toward base, with loot");
+//			log("Going toward base, with loot");
 			return newAction;
 		}
 
 		// We have a current target enemy, so keep aiming for that
 		if (relationalKnowledge.getCurrentTargetEnemy() != null) {
-			willShoot = true;
+			willShoot = shouldShootAtEnemy(space, ship);
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetEnemy(), ship);
-			 log("Hunting target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
+//			log("Hunting target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
 			return newAction;
 		}
 
 		// if we do not already have a current target enemy, decide on a new enemy or asteroid
-		if (ship.getCurrentAction().isMovementFinished(space) || ship.getCurrentAction() == null) {
+		if (ship.getCurrentAction() == null || ship.getCurrentAction().isMovementFinished(space)) {
 
-			// Both asteroid and enemy don't exist, do nothing
+			// If nothing exists, do nothing
 			if (relationalKnowledge.getNearestAsteroid() == null && relationalKnowledge.getNearestEnemy() == null) {
 				willShoot = false;
+				
+				// If nothing to do, go to nearest beacon to heal
+				if (relationalKnowledge.getNearestBeacon() != null) {
+					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(), ship);
+					return newAction;
+				}
+									
+				// Go to base if nothing else, to drop off resources and heal
+				if (relationalKnowledge.getNearestBase() != null) {
+					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(), ship);
+					return newAction;
+				}
+				
 				newAction = new DoNothingAction();
-				 log("Doing nothing");
+				
+				log("Doing nothing");
 				return newAction;
 			}
 
@@ -174,27 +198,30 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					|| relationalKnowledge.getNearestEnemy() == null) {
 				willShoot = false;
 				newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestAsteroid(), ship);
-				 log("Moving toward asteroid. Gonna get me some money.");
+				log("Moving toward asteroid. Gonna get me some money.");
 				return newAction;
 			}
 
 			// Go for the enemy!
-			willShoot = propositionalKnowledge.getDistanceToEnemy() <= propositionalKnowledge.SHOOTING_DISTANCE ? true
-					: false;
+			willShoot = shouldShootAtEnemy(space, ship);
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestEnemy(), ship);
 			relationalKnowledge.setCurrentTargetEnemy(relationalKnowledge.getNearestEnemy());
 			log("Moving toward new enemy, attempting to annihilate new target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
 			return newAction;
 		}
 		
-		 if (ship.getCurrentAction() instanceof MoveToObjectAction) { 
-			 log("Going to old goal object: " + ((MoveToObjectAction)ship.getCurrentAction()).getGoalObject()); 
+		 if (ship.getCurrentAction() instanceof FasterMoveToObjectAction) { 
+			 log("Going to old goal object: " + ((FasterMoveToObjectAction)ship.getCurrentAction()).getGoalObject()); 
 		 } else { 
 			 log("Performing same old action: " + ship.getCurrentAction());
 		 }
 		 
 		// return the current action if we cannot determine a new action
 		return ship.getCurrentAction();
+	}
+	
+	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {
+		return relationalKnowledge.enemyOnPath(space, ship) && propositionalKnowledge.getDistanceToEnemy() <= propositionalKnowledge.SHOOTING_DISTANCE;
 	}
 
 	/**
@@ -230,8 +257,10 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		// If our target is an enemy ship, and we are within short distance, slow down
 		Vector2D targetVelocity;
 		
+		// If we are within short distance of enemy, slow down and attack!
 		if ((relationalKnowledge.getCurrentTargetEnemy() != null && goalObject.getId() == relationalKnowledge.getCurrentTargetEnemy().getId()) && 
 				propositionalKnowledge.getDistanceToEnemy() < propositionalKnowledge.SHORT_DISTANCE*2) {
+			targetPosition = goalObject.getPosition();
 			targetVelocity = new Vector2D(0, 0);
 		} else {
 			targetVelocity = new Vector2D(velocityScale*distance.getXValue(), velocityScale*distance.getYValue());
