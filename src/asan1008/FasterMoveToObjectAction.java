@@ -11,7 +11,11 @@ import spacesettlers.utilities.Vector2D;
  * Calls MoveAction for the actual movements but allows you to aim for a spacewar object
  * and to stop when the object dies (e.g. someone (maybe you) reached it)
  * 
- * @author amy
+ * Based on code for MoveToObjectAction
+ * 
+ * Provides extra support for A* movement (moving along path rather than straight line) and 
+ * more flexible target velocity
+ * 
  */
 public class FasterMoveToObjectAction extends MoveAction {
 	AbstractObject goalObject;
