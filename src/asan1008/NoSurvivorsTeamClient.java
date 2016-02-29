@@ -184,14 +184,13 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			}
 
 			// Go for the enemy!
-			willShoot = propositionalKnowledge.getDistanceToEnemy() <= propositionalKnowledge.LARGE_DISTANCE ? true
+			willShoot = propositionalKnowledge.getDistanceToEnemy() <= propositionalKnowledge.SHOOTING_DISTANCE ? true
 					: false;
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestEnemy(), ship);
 			relationalKnowledge.setCurrentTargetEnemy(relationalKnowledge.getNearestEnemy());
-			 log("Moving toward new enemy, attempting to annihilate new target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
+			log("Moving toward new enemy, attempting to annihilate new target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
 			return newAction;
 		}
-
 		
 		 if (ship.getCurrentAction() instanceof MoveToObjectAction) { 
 			 log("Going to old goal object: " + ((MoveToObjectAction)ship.getCurrentAction()).getGoalObject()); 
@@ -199,7 +198,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			 log("Performing same old action: " + ship.getCurrentAction());
 		 }
 		 
-
 		// return the current action if we cannot determine a new action
 		return ship.getCurrentAction();
 	}
@@ -236,11 +234,14 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 		// If our target is an enemy ship, and we are within short distance, slow down
 		Vector2D targetVelocity;
-		targetVelocity = (goalObject.equals(relationalKnowledge.getCurrentTargetEnemy()) && 
-				propositionalKnowledge.getDistanceToEnemy() < propositionalKnowledge.SHORT_DISTANCE*2) ? 
-				new Vector2D(0, 0) :
-				new Vector2D(velocityScale*distance.getXValue(), velocityScale*distance.getYValue());
-					
+		
+		if ((relationalKnowledge.getCurrentTargetEnemy() != null && goalObject.getId() == relationalKnowledge.getCurrentTargetEnemy().getId()) && 
+				propositionalKnowledge.getDistanceToEnemy() < propositionalKnowledge.SHORT_DISTANCE*2) {
+			targetVelocity = new Vector2D(0, 0);
+		} else {
+			targetVelocity = new Vector2D(velocityScale*distance.getXValue(), velocityScale*distance.getYValue());
+		}
+							
 		return new FasterMoveToObjectAction(space, propositionalKnowledge.getCurrentPosition(), goalObject, targetPosition, targetVelocity);
 	}
 

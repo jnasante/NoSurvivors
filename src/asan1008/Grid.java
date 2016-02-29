@@ -16,6 +16,8 @@ import spacesettlers.objects.AbstractObject;
 import spacesettlers.objects.Asteroid;
 import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
+import spacesettlers.objects.weapons.AbstractWeapon;
+import spacesettlers.objects.weapons.Missile;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 
@@ -37,7 +39,7 @@ public class Grid {
 		this(space, ship, goal, true);
 	}
 	
-	public Grid(Toroidal2DPhysics space, Ship ship, AbstractObject goal, boolean shouldIgnoreMineableAsteroids){
+	public Grid(Toroidal2DPhysics space, Ship ship, AbstractObject goal, boolean shouldIgnoreMineableAsteroids) {
 		this.goal = goal;
 		graphicsToAdd = new ArrayList<SpacewarGraphics>();
 		nodes = new HashMap<Pair<Integer,Integer>, GridNode>();
@@ -62,14 +64,61 @@ public class Grid {
 	private void markOccupiedNodes(Toroidal2DPhysics space, AbstractObject goal) {
 		for( AbstractObject object : space.getAllObjects() ) {
 			if( object instanceof Beacon || 
+					object instanceof AbstractWeapon ||
 					(object instanceof Asteroid && ((Asteroid)object).isMineable() && shouldIgnoreMineableAsteroids) || 
 					object.getId() == goal.getId()){
 				continue;
 			}
 			
-			getNodeByObject(object).setFree(false);
+			getNodeByObject(object).setOccupied();
+			
+			// Calculate positions of corners of "box" surrounding object
+			Position topLeftPosition = new Position(getLeftBorder(space, object), getTopBorder(space, object));
+			Position topRightPosition = new Position(getRightBorder(space, object), getTopBorder(space, object));
+			Position bottomLeftPosition = new Position(getLeftBorder(space, object), getBottomBorder(space, object));
+			Position bottomRightPosition = new Position(getRightBorder(space, object), getBottomBorder(space, object));
+			
+			// Mark all nodes the object touches as occupied
+			getNodeByPosition(topLeftPosition).setOccupied();
+			getNodeByPosition(topRightPosition).setOccupied();
+			getNodeByPosition(bottomLeftPosition).setOccupied();
+			getNodeByPosition(bottomRightPosition).setOccupied();
 		}
+		
 	}
+	
+	private double getTopBorder(Toroidal2DPhysics space, AbstractObject object) {
+		return (object.getPosition().getY() - object.getRadius()) % space.getHeight();
+	}
+
+	private double getBottomBorder(Toroidal2DPhysics space, AbstractObject object) {
+		return (object.getPosition().getY() + object.getRadius()) % space.getHeight();
+	}
+
+	private double getLeftBorder(Toroidal2DPhysics space, AbstractObject object) {
+		return (object.getPosition().getX() - object.getRadius()) % space.getWidth();
+	}
+	
+	private double getRightBorder(Toroidal2DPhysics space, AbstractObject object) {
+		return (object.getPosition().getX() + object.getRadius()) % space.getHeight();
+	}
+	
+	private GridNode getTopNode(GridNode node) {
+		return nodes.get(getKeyPair(new Position(node.getX1(), node.getTopPosition())));
+	}
+	
+	private GridNode getBottomNode(GridNode node) {
+		return nodes.get(getKeyPair(new Position(node.getX1(), node.getBottomPosition())));
+	}
+	
+	private GridNode getLeftNode(GridNode node) {
+		return nodes.get(getKeyPair(new Position(node.getX1(), node.getTopPosition())));
+	}
+
+	private GridNode getRightNode(GridNode node) {
+		return nodes.get(getKeyPair(new Position(node.getX1(), node.getTopPosition())));
+	}
+
 	
 	private void initializeAdjacencyMap(double width, double height) {
 		for(GridNode node: nodes.values()) {
@@ -88,7 +137,7 @@ public class Grid {
 			if(left) {
 				neighbors.add(nodes.get(getKeyPair(new Position(leftPosition, node.getY1()))));
 			}
-			if(top){
+			if(top) {
 				neighbors.add(nodes.get(getKeyPair(new Position(node.getX1(), topPosition))));
 				if(left) {
 					neighbors.add(nodes.get(getKeyPair(new Position(leftPosition, topPosition))));
@@ -121,7 +170,11 @@ public class Grid {
 	}
 	
 	protected GridNode getNodeByObject(AbstractObject object) {
-		return nodes.get(getKeyPair(object.getPosition()));
+		return getNodeByPosition(object.getPosition());
+	}
+	
+	protected GridNode getNodeByPosition(Position position) {
+		return nodes.get(getKeyPair(position));
 	}
 	
 	private GridNode removeMinFromFringe(HashMap<GridNode, Double> fringe) {		

@@ -53,7 +53,24 @@ public class GridNode {
 		return free;
 	}
 
-	public void setFree(boolean free) {
-		this.free = free;
+	public void setOccupied() {
+		this.free = false;
+	}
+	
+	/* Helper methods */
+	public double getTopPosition() {
+		return y1-Math.abs(y1-y2);
+	}
+	
+	public double getBottomPosition() {
+		return y1+Math.abs(y1-y2);
+	}
+	
+	public double getLeftPosition(GridNode node) {
+		return x1-Math.abs(x1-x2);
+	}
+
+	public double getRightPosition(GridNode node) {
+		return x1+Math.abs(x1-x2);
 	}
 }

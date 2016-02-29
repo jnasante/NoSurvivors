@@ -24,6 +24,7 @@ public class PropositionalRepresentation {
 	// Static constants
 	public final int LARGE_DISTANCE = 400;
 	public final int SHORT_DISTANCE = 60;
+	public final int SHOOTING_DISTANCE = 180;
 
 	/**
 	 *  Update our knowledge about the current environment
