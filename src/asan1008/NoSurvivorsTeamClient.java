@@ -93,7 +93,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		propositionalKnowledge.updateRepresentation(relationalKnowledge, space, ship);
 
 		AbstractAction newAction = null;
-		log("Position: " + ship.getPosition().getX() + ", " + ship.getPosition().getY());
+		//log("Position: " + ship.getPosition().getX() + ", " + ship.getPosition().getY());
 		
 		//log("X Velocity: " + ship.getPosition().getxVelocity() + "Y Velocity: " + ship.getPosition().getyVelocity());
 
@@ -217,7 +217,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		 }
 		 
 		// return the current action if we cannot determine a new action
-		return ship.getCurrentAction();
+		ship.setCurrentAction(null);
+		return new DoNothingAction();
 	}
 	
 	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {

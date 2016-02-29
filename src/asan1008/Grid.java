@@ -15,7 +15,6 @@ import spacesettlers.objects.Asteroid;
 import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
 import spacesettlers.objects.weapons.AbstractWeapon;
-import spacesettlers.objects.weapons.Missile;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 
@@ -39,6 +38,8 @@ public class Grid {
 	
 	public Grid(Toroidal2DPhysics space, Ship ship, AbstractObject goal, boolean shouldIgnoreMineableAsteroids) {
 		this.goal = goal;
+		this.ship = ship;
+		this.shouldIgnoreMineableAsteroids = shouldIgnoreMineableAsteroids;		
 		graphicsToAdd = new ArrayList<SpacewarGraphics>();
 		nodes = new HashMap<Pair<Integer,Integer>, GridNode>();
 		adjacencyMap = new HashMap<GridNode, ArrayList<GridNode>>();
@@ -46,8 +47,7 @@ public class Grid {
 		markOccupiedNodes(space, goal);
 		initializeAdjacencyMap(space.getWidth(), space.getHeight());
 		getNodeByObject(goal).setHValue(0);
-		this.ship = ship;
-		this.shouldIgnoreMineableAsteroids = shouldIgnoreMineableAsteroids;
+
 	}
 	
 	private void divideSpace(Toroidal2DPhysics space, AbstractObject goal){
@@ -64,7 +64,8 @@ public class Grid {
 			if( object instanceof Beacon || 
 					object instanceof AbstractWeapon ||
 					(object instanceof Asteroid && ((Asteroid)object).isMineable() && shouldIgnoreMineableAsteroids) || 
-					object.getId() == goal.getId()){
+					object.getId() == goal.getId() || 
+					object.getId() == ship.getId()) {
 				continue;
 			}
 			
@@ -101,23 +102,6 @@ public class Grid {
 		return (object.getPosition().getX() + object.getRadius()) % space.getHeight();
 	}
 	
-	private GridNode getTopNode(GridNode node) {
-		return nodes.get(getKeyPair(new Position(node.getX1(), node.getTopPosition())));
-	}
-	
-	private GridNode getBottomNode(GridNode node) {
-		return nodes.get(getKeyPair(new Position(node.getX1(), node.getBottomPosition())));
-	}
-	
-	private GridNode getLeftNode(GridNode node) {
-		return nodes.get(getKeyPair(new Position(node.getX1(), node.getTopPosition())));
-	}
-
-	private GridNode getRightNode(GridNode node) {
-		return nodes.get(getKeyPair(new Position(node.getX1(), node.getTopPosition())));
-	}
-
-	
 	private void initializeAdjacencyMap(double width, double height) {
 		for(GridNode node: nodes.values()) {
 			ArrayList<GridNode> neighbors = new ArrayList<GridNode>();
@@ -134,52 +118,43 @@ public class Grid {
 			
 			GridNode neighbor;
 			
-
 			if(left) {
 				neighbor = nodes.get(getKeyPair(new Position(leftPosition, node.getY1())));
-				if (neighbor != null) neighbors.add(neighbor);
+				if (neighbor != null && neighbor.isFree()) neighbors.add(neighbor);
 			}
 			
 			if(top) {
 				neighbor = nodes.get(getKeyPair(new Position(node.getX1(), topPosition)));
-				if (neighbor != null) neighbors.add(neighbor);
+				if (neighbor != null && neighbor.isFree()) neighbors.add(neighbor);
 				
 				if(left) {
 					neighbor = nodes.get(getKeyPair(new Position(leftPosition, topPosition)));
-					if (neighbor != null) neighbors.add(neighbor);
+					if (neighbor != null && neighbor.isFree()) neighbors.add(neighbor);
 				}
 				
 				if(right) {
 					neighbor = nodes.get(getKeyPair(new Position(rightPosition, topPosition)));
-					if (neighbor != null) neighbors.add(neighbor);
+					if (neighbor != null && neighbor.isFree()) neighbors.add(neighbor);
 				}
 			}
 			
 			if(right) {
 				neighbor = nodes.get(getKeyPair(new Position(rightPosition, node.getY1())));
-				if (neighbor != null) neighbors.add(neighbor);
+				if (neighbor != null && neighbor.isFree()) neighbors.add(neighbor);
 			}
 			
 			if(bottom){
 				neighbor = nodes.get(getKeyPair(new Position(node.getX1(), bottomPosition)));
-				if (neighbor != null) neighbors.add(neighbor);
+				if (neighbor != null && neighbor.isFree()) neighbors.add(neighbor);
 				
 				if(left) {
 					neighbor = nodes.get(getKeyPair(new Position(leftPosition, bottomPosition)));
-					if (neighbor != null) neighbors.add(neighbor);
+					if (neighbor != null && neighbor.isFree()) neighbors.add(neighbor);
 				}
 				
 				if(right) {
 					neighbor = nodes.get(getKeyPair(new Position(rightPosition, bottomPosition)));
-					if (neighbor != null) neighbors.add(neighbor);
-				}
-			}
-			
-			int count = neighbors.size();
-			for (int i = count-1; i >= 0; i--) {
-				if (neighbors.get(i) == null) {
-					neighbors.remove(i);
-					System.out.println("Removed null item");
+					if (neighbor != null && neighbor.isFree()) neighbors.add(neighbor);
 				}
 			}
 			
@@ -260,7 +235,7 @@ public class Grid {
 				closed.add(current);
 				int count = 0;
 				for (GridNode node : adjacencyMap.get(current)) {
-					if (node == null || closed.contains(node)) {
+					if (node == null || !node.isFree() || closed.contains(node)) {
 						continue;
 					}
 										
