@@ -1,12 +1,12 @@
 package asan1008;
 
 import java.util.Set;
-
 import spacesettlers.objects.Asteroid;
 import spacesettlers.objects.Base;
 import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
 import spacesettlers.simulator.Toroidal2DPhysics;
+import spacesettlers.utilities.Position;
 
 public class RelationalRepresentation {
 	
@@ -232,4 +232,53 @@ public class RelationalRepresentation {
 
 		return closestAsteroid;
 	}	
+	
+	/**
+	 * Find out if an enemy is within the line of fire
+	 * 
+	 * @param space Current space instance
+	 * @param ship Our ship
+	 * 
+	 * @return Boolean value for whether or not we should shoot
+	 */
+	public boolean enemyOnPath(Toroidal2DPhysics space, Ship ship){
+		double shipX = ship.getPosition().getX();
+		double shipY = ship.getPosition().getY();
+		double orientation = ship.getPosition().getOrientation();
+		if( currentTargetEnemy.getTeamName() != ship.getTeamName()) {
+			double radius = currentTargetEnemy.getRadius();
+			double enemyX = currentTargetEnemy.getPosition().getX();
+			double enemyY = currentTargetEnemy.getPosition().getY();
+			double x1, y1, x2, y2;
+			if((enemyX - shipX) * (enemyY - shipY) > 0) {
+				// bottom left corner
+				x1 = enemyX - radius;
+				y1 = enemyY + radius;
+				// top right corner
+				x2 = enemyX + radius;
+				y2 = enemyY - radius;
+			} else {
+				// top left corner
+				x1 = enemyX - radius;
+				y1 = enemyY - radius;
+				// bottom right corner
+				x2 = enemyX + radius;
+				y2 = enemyY + radius;
+			}
+			
+			double xDist1 = x1 - shipX;
+			double yDist1 = y1 - shipY;
+			double xDist2 = x2 - shipX;
+			double yDist2 = y2 - shipY;
+			double degree1 = Math.toDegrees(Math.atan2(yDist1, xDist1));
+			double radian1 = -((-degree1)*Math.PI/180);
+			double degree2 = Math.toDegrees(Math.atan2(yDist2, xDist2));
+			double radian2 = -((-degree2)*Math.PI/180);
+			
+			if((orientation <= Math.max(radian1, radian2)) && (orientation >= Math.min(radian1, radian2))) {
+				return true;
+			}
+		}
+		return false;
+	}
 }
