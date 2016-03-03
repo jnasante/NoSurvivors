@@ -9,7 +9,7 @@
 	<teamColorBlue>206</teamColorBlue>
 	
 	<!-- The name that shows up in the ladder -->
-	<ladderName>Joseph and Aric - The People's Champion</ladderName>
+	<ladderName>Do you suh-melllll what Joseph and Aric are cookin?!</ladderName>
 	
 	<!-- The number of ships in the team.  Note, if this is bigger than the maximum number of allowable ships per team, it is ignored -->
 	<numberInitialShipsInTeam>2</numberInitialShipsInTeam>

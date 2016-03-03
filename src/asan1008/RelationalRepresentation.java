@@ -9,7 +9,7 @@ import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 
 /** 
- * 
+ * Relational knowledge representation of the environment
  *
  */
 public class RelationalRepresentation {
@@ -246,6 +246,7 @@ public class RelationalRepresentation {
 	 * @return Boolean value for whether or not we should shoot
 	 */
 	public boolean enemyOnPath(Toroidal2DPhysics space, Ship ship){
+		// prepare the necessary variables for the algorithm
 		double shipX = ship.getPosition().getX();
 		double shipY = ship.getPosition().getY();
 		double orientation = ship.getPosition().getOrientation();
@@ -254,7 +255,9 @@ public class RelationalRepresentation {
 			double enemyX = currentTargetEnemy.getPosition().getX();
 			double enemyY = currentTargetEnemy.getPosition().getY();
 			double x1, y1, x2, y2;
+			// check if the x and y distances are of the same sign
 			if((enemyX - shipX) * (enemyY - shipY) > 0) {
+				// if x and y distances have the same sign, use the bottom left and top right corners
 				// bottom left corner
 				x1 = enemyX - radius;
 				y1 = enemyY + radius;
@@ -262,6 +265,7 @@ public class RelationalRepresentation {
 				x2 = enemyX + radius;
 				y2 = enemyY - radius;
 			} else {
+				// if x and y distances have different signs, use the top left and bottom right corners
 				// top left corner
 				x1 = enemyX - radius;
 				y1 = enemyY - radius;
@@ -270,27 +274,58 @@ public class RelationalRepresentation {
 				y2 = enemyY + radius;
 			}
 			
+			// now we can get the x and y distances to the proper corners
 			double xDist1 = x1 - shipX;
 			double yDist1 = y1 - shipY;
 			double xDist2 = x2 - shipX;
 			double yDist2 = y2 - shipY;
+			// turn the cartesian distances to degrees using arctan
 			double degree1 = Math.toDegrees(Math.atan2(yDist1, xDist1));
+			// turn the degrees into radians, accounting for the odd radian distribution in spacesettlers
 			double radian1 = -((-degree1)*Math.PI/180);
 			double degree2 = Math.toDegrees(Math.atan2(yDist2, xDist2));
 			double radian2 = -((-degree2)*Math.PI/180);
 			
-			
-			
+			// check that it is not a pi/-pi overlap			
 			if (radian1*radian2 > 0 || Math.max(radian1, radian2) < Math.PI/2) {
+				// check that our ship’s orientation lies between the radians
 				if((orientation <= Math.max(radian1, radian2)) && (orientation >= Math.min(radian1, radian2))) {
+					// enemy is on path
 					return true;
 				}
 			} else {
+				// check that our ship’s orientation lies between the radians that involve pi/-pi overlap
 				if((orientation >= Math.max(radian1, radian2)) && (orientation <= Math.min(radian1, radian2))) {
+					// enemy is on path
 					return true;
 				}
 			}
 		}
+		// enemy is not on path
 		return false;
 	}
+	
+	/**
+	 * Find the target orientation to the current enemy
+	 * 
+	 * @param space Current space instance
+	 * @param ship Our ship
+	 * 
+	 * @return Double value of orientation to enemy from ship
+	 */
+	public double getTargetOrientationToEnemy(Toroidal2DPhysics space, Ship ship) {
+		if(currentTargetEnemy != null) {
+			double shipX = ship.getPosition().getX();
+			double shipY = ship.getPosition().getY();
+			double enemyX = currentTargetEnemy.getPosition().getX();
+			double enemyY = currentTargetEnemy.getPosition().getY();		
+			double xDist = enemyX - shipX;
+			double yDist = enemyY - shipY;
+			double degree = Math.toDegrees(Math.atan2(yDist, xDist));
+			double radian = -((-degree)*Math.PI/180);
+			return radian;
+		}
+		return 10.0;
+	}
+
 }

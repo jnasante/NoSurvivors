@@ -5,7 +5,7 @@ import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 
 /**
- * 
+ * Class for our nodes in the grid
  *
  */
 public class GridNode {

@@ -58,6 +58,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 						//log("is planning");
 						grid = new Grid(space, ship, currentGoalObject, ship.getEnergy() > 500);
 						currentPath = grid.getPathToGoal(space);
+						
+						/* Uncomment line below to draw path as planning takes place */
 						if (currentPath != null) graphicsToAdd = grid.drawPath(currentPath, space);
 					}
 				}
@@ -98,7 +100,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		//log("X Velocity: " + ship.getPosition().getxVelocity() + "Y Velocity: " + ship.getPosition().getyVelocity());
 
 		if (!ship.isAlive()) {
-			log("But I died");
+			//log("But I died");
 			ship.setCurrentAction(null);
 			return new DoNothingAction();
 		}
@@ -138,7 +140,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 			// There is no beacon, or the base is closer and has enough energy
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(), ship);
-			log("Moving toward base");
+			//log("Moving toward base");
 			return newAction;
 		}
 		
@@ -186,7 +188,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				
 				newAction = new DoNothingAction();
 				
-				log("Doing nothing");
+				//log("Doing nothing");
 				return newAction;
 			}
 
@@ -198,7 +200,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					|| relationalKnowledge.getNearestEnemy() == null) {
 				willShoot = false;
 				newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestAsteroid(), ship);
-				log("Moving toward asteroid. Gonna get me some money.");
+				//log("Moving toward asteroid. Gonna get me some money.");
 				return newAction;
 			}
 
@@ -206,15 +208,15 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			willShoot = shouldShootAtEnemy(space, ship);
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestEnemy(), ship);
 			relationalKnowledge.setCurrentTargetEnemy(relationalKnowledge.getNearestEnemy());
-			log("Moving toward new enemy, attempting to annihilate new target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
+			//log("Moving toward new enemy, attempting to annihilate new target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
 			return newAction;
 		}
 		
-		 if (ship.getCurrentAction() instanceof FasterMoveToObjectAction) { 
-			 log("Going to old goal object: " + ((FasterMoveToObjectAction)ship.getCurrentAction()).getGoalObject()); 
-		 } else { 
-			 log("Performing same old action: " + ship.getCurrentAction());
-		 }
+//		 if (ship.getCurrentAction() instanceof FasterMoveToObjectAction) { 
+//			 log("Going to old goal object: " + ((FasterMoveToObjectAction)ship.getCurrentAction()).getGoalObject()); 
+//		 } else { 
+//			 log("Performing same old action: " + ship.getCurrentAction());
+//		 }
 		 
 		// return the current action if we cannot determine a new action
 		ship.setCurrentAction(null);
@@ -267,7 +269,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			targetVelocity = new Vector2D(velocityScale*distance.getXValue(), velocityScale*distance.getYValue());
 		}
 							
-		return new FasterMoveToObjectAction(space, propositionalKnowledge.getCurrentPosition(), goalObject, targetPosition, targetVelocity);
+		return new FasterMoveToObjectAction(space, propositionalKnowledge.getCurrentPosition(), goalObject, targetPosition, targetVelocity, relationalKnowledge.getTargetOrientationToEnemy(space, ship));
 	}
 
 	@Override

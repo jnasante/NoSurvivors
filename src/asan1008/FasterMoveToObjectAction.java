@@ -17,7 +17,7 @@ import spacesettlers.utilities.Vector2D;
  * more flexible target velocity
  * 
  */
-public class FasterMoveToObjectAction extends MoveAction {
+public class FasterMoveToObjectAction extends OrientedMoveAction {
 	AbstractObject goalObject;
 	Position originalLocation;
 	
@@ -28,8 +28,8 @@ public class FasterMoveToObjectAction extends MoveAction {
 	 * @param currentLocation
 	 * @param goalObject
 	 */
-	public FasterMoveToObjectAction(Toroidal2DPhysics space, Position currentPosition, AbstractObject goalObject, Position targetPosition, Vector2D targetVelocity) {
-		super(space, currentPosition, targetPosition, targetVelocity);
+	public FasterMoveToObjectAction(Toroidal2DPhysics space, Position currentPosition, AbstractObject goalObject, Position targetPosition, Vector2D targetVelocity, double targetOrientation) {
+		super(space, currentPosition, targetPosition, targetVelocity, targetOrientation);
 		this.goalObject = goalObject;
 		this.originalLocation = goalObject.getPosition().deepCopy();
 	}
@@ -41,9 +41,6 @@ public class FasterMoveToObjectAction extends MoveAction {
 	public AbstractObject getGoalObject() {
 		return goalObject;
 	}
-
-
-
 
 	/**
 	 * Returns true if the movement finished or the goal object died or moved

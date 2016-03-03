@@ -19,7 +19,7 @@ import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 
 /** 
- * 
+ * Grid representation of the map (for A* search)
  *
  */
 public class Grid {
@@ -50,6 +50,9 @@ public class Grid {
 
 	}
 	
+	/**
+	 * Divide the space into grid nodes
+	 */
 	private void divideSpace(Toroidal2DPhysics space, AbstractObject goal){
 		for(int i = 0; i < space.getWidth(); i+=GRID_NODE_SIZE){
 			for(int j = 0; j < space.getHeight(); j+=GRID_NODE_SIZE){
@@ -59,6 +62,12 @@ public class Grid {
 		}
 	}
 	
+	/**
+	 * Mark nodes containing objects as occupied
+	 * 
+	 * @param space Space
+	 * @param goal our goal object
+	 */
 	private void markOccupiedNodes(Toroidal2DPhysics space, AbstractObject goal) {
 		for( AbstractObject object : space.getAllObjects() ) {
 			if( object instanceof Beacon || 
@@ -86,22 +95,40 @@ public class Grid {
 		
 	}
 	
+	/**
+	 * Helper method to get top border of square around an object
+	 */
 	private double getTopBorder(Toroidal2DPhysics space, AbstractObject object) {
-		return (object.getPosition().getY() - object.getRadius()) % space.getHeight();
+		return (object.getPosition().getY() - ship.getRadius()) % space.getHeight();
 	}
 
+	/**
+	 * Helper method to get bottom border of square around an object
+	 */
 	private double getBottomBorder(Toroidal2DPhysics space, AbstractObject object) {
 		return (object.getPosition().getY() + object.getRadius()) % space.getHeight();
 	}
 
+	/**
+	 * Helper method to get left border of square around an object
+	 */
 	private double getLeftBorder(Toroidal2DPhysics space, AbstractObject object) {
 		return (object.getPosition().getX() - object.getRadius()) % space.getWidth();
 	}
 	
+	/**
+	 * Helper method to get right border of square around an object
+	 */
 	private double getRightBorder(Toroidal2DPhysics space, AbstractObject object) {
 		return (object.getPosition().getX() + object.getRadius()) % space.getHeight();
 	}
 	
+	/**
+	 * Determine neighbors of each node
+	 * 
+	 * @param width
+	 * @param height
+	 */
 	private void initializeAdjacencyMap(double width, double height) {
 		for(GridNode node: nodes.values()) {
 			ArrayList<GridNode> neighbors = new ArrayList<GridNode>();
@@ -163,20 +190,44 @@ public class Grid {
 		}
 	}
 
+	/**
+	 * Get pre-defined key-pair for the grid node based on position
+	 * 
+	 * @param position
+	 * @return
+	 */
 	private Pair<Integer, Integer> getKeyPair(Position position) {
 		int xPosition = (int) (position.getX() - (position.getX() % GRID_NODE_SIZE));
 		int yPosition = (int) (position.getY() - (position.getY() % GRID_NODE_SIZE));
 		return new Pair<Integer, Integer>(xPosition, yPosition);
 	}
 	
+	/**
+	 * Get grid node containing object
+	 * 
+	 * @param object
+	 * @return
+	 */
 	protected GridNode getNodeByObject(AbstractObject object) {
 		return getNodeByPosition(object.getPosition());
 	}
 	
+	/**
+	 * Get grid node containing position
+	 * 
+	 * @param object
+	 * @return
+	 */
 	protected GridNode getNodeByPosition(Position position) {
 		return nodes.get(getKeyPair(position));
 	}
 	
+	/**
+	 * Custom priority queue created from Hashmap
+	 * 
+	 * @param fringe
+	 * @return
+	 */
 	private GridNode removeMinFromFringe(HashMap<GridNode, Double> fringe) {		
 		GridNode currentMinNode = null;
 		
@@ -258,6 +309,14 @@ public class Grid {
 		}
 	}
 	
+	/**
+	 * Helper method for A*
+	 * Construct the final path based on information gathered from A* search
+	 * 
+	 * @param cameFrom
+	 * @param current
+	 * @return
+	 */
 	private LinkedList<GridNode> constructPath(HashMap<GridNode, GridNode> cameFrom, GridNode current) {
 		LinkedList<GridNode> path = new LinkedList<GridNode>();
 		path.add(current);
@@ -268,6 +327,13 @@ public class Grid {
 		return path;
 	}
 	
+	/**
+	 * Draw path created from A* search (for debugging in simulator)
+	 * 
+	 * @param path
+	 * @param space
+	 * @return
+	 */
 	public ArrayList<SpacewarGraphics> drawPath(LinkedList<GridNode> path, Toroidal2DPhysics space){
 		Iterator<GridNode> iterator = path.iterator();
 		Position prev = iterator.next().getPosition();

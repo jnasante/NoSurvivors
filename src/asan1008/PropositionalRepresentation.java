@@ -5,7 +5,7 @@ import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 
 /** 
- * 
+ * Propositional knowledge representation of the environment
  *
  */
 public class PropositionalRepresentation {
@@ -24,7 +24,7 @@ public class PropositionalRepresentation {
 	// Static constants
 	public final int LARGE_DISTANCE = 400;
 	public final int SHORT_DISTANCE = 60;
-	public final int SHOOTING_DISTANCE = 180;
+	public final int SHOOTING_DISTANCE = 250;
 
 	/**
 	 *  Update our knowledge about the current environment
