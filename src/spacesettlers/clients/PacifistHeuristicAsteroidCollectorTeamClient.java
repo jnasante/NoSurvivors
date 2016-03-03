@@ -301,17 +301,16 @@ public class PacifistHeuristicAsteroidCollectorTeamClient extends TeamClient {
 					Set<Base> bases = space.getBases();
 
 					// how far away is this ship to a base of my team?
-					double maxDistance = Double.MIN_VALUE;
+					boolean buyBase = true;
 					for (Base base : bases) {
 						if (base.getTeamName().equalsIgnoreCase(getTeamName())) {
 							double distance = space.findShortestDistance(ship.getPosition(), base.getPosition());
-							if (distance > maxDistance) {
-								maxDistance = distance;
+							if (distance < BASE_BUYING_DISTANCE) {
+								buyBase = false;
 							}
 						}
 					}
-
-					if (maxDistance > BASE_BUYING_DISTANCE) {
+					if (buyBase) {
 						purchases.put(ship.getId(), PurchaseTypes.BASE);
 						bought_base = true;
 						//System.out.println("Buying a base!!");
