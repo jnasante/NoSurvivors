@@ -289,6 +289,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					Ship ship = (Ship) actionableObject;
 					if (ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY.getPowerupMap())) {
 						purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY);
+						log("upgrading weapon");
 					}
 				}
 			}
@@ -301,6 +302,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					Ship ship = (Ship) actionableObject;
 					if (ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_MAX_ENERGY.getPowerupMap())) {
 						purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_MAX_ENERGY);
+						log("upgrading max energy");
 					}
 				}
 			}

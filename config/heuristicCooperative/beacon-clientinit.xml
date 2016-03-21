@@ -4,8 +4,8 @@
 	<classname>spacesettlers.clients.BeaconCollectorTeamClient</classname>
 	
 	<!-- You can choose the color your team's ships will be on the screen.  Specify the red, green, and blue components -->
-	<teamColorRed>0</teamColorRed>
-	<teamColorGreen>200</teamColorGreen>
+	<teamColorRed>255</teamColorRed>
+	<teamColorGreen>255</teamColorGreen>
 	<teamColorBlue>0</teamColorBlue>
 	
 	<!-- The name that shows up in the ladder -->
