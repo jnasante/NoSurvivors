@@ -50,6 +50,9 @@
 		<HighLevelTeamConfig>
 			<teamName>NoSurvivorsTeamClient</teamName>
 			<configFile>spacesettlersinit.xml</configFile></HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<teamName>ExampleAStarClient</teamName>
+			<configFile>example-astar-clientinit.xml</configFile></HighLevelTeamConfig>
 	</teams>
 
 	<!-- Each team needs a base.  Optionally, you can initialize the location of the base -->
@@ -68,6 +71,8 @@
 		</BaseConfig>
 		<BaseConfig>
 			<teamName>NoSurvivorsTeamClient</teamName></BaseConfig>
+		<BaseConfig>
+			<teamName>ExampleAStarClient</teamName></BaseConfig>
 	</bases>
 	
 	<!-- Specify the options for creating asteroids.  Their locations are random. -->
