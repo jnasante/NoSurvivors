@@ -39,8 +39,8 @@
 			<configFile>beacon-clientinit.xml</configFile>
 		</HighLevelTeamConfig>
 		<HighLevelTeamConfig>
-			<teamName>HumanTeam</teamName>
-			<configFile>human-clientinit.xml</configFile>
+			<teamName>NoSurvivorsTeamClient</teamName>
+			<configFile>spacesettlersinit.xml</configFile>
 		</HighLevelTeamConfig>
 		<HighLevelTeamConfig>
 			<teamName>HeuristicMinerTeam</teamName>
@@ -58,7 +58,7 @@
 			<teamName>BeaconCollectorTeam</teamName>
 		</BaseConfig>
 		<BaseConfig>
-			<teamName>HumanTeam</teamName>
+			<teamName>NoSurvivorsTeamClient</teamName>
 		</BaseConfig>
 		<BaseConfig>
 			<teamName>HeuristicMinerTeam</teamName>

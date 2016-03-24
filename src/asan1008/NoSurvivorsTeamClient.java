@@ -229,7 +229,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private void getAStarPathToGoal(Toroidal2DPhysics space, Ship ship, Position goalPosition) {
-		Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random());
+		Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random(), ship.getEnergy() > 1000);
 		currentPath = graph.findAStarPath(space);
 		
 		/* Draw path as planning takes place */
@@ -271,7 +271,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		currentGoalObject = goalObject;
 				
 		// The magnitude of our velocity vector. If we are dangerously low on energy, slow down
-		final int VELOCITY_MAGNITUDE = ship.getEnergy() > 1000 ? 85 : 50;
+		final int VELOCITY_MAGNITUDE = ship.getEnergy() > 1500 ? 90 : 40;
 		
 		// Next node we are targeting on the path
 		Position targetPosition = currentPath != null && !currentPath.isEmpty() && 

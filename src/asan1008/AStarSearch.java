@@ -27,7 +27,6 @@ public class AStarSearch  {
 	private static final int fudge_factor = 10;
 	private static final int numGraphNodes = 200;
 	private static final double maxNodeDistance = 200;
-	
 
 	/**
 	 * Ensures that the specified point is not inside an obstacle
@@ -96,7 +95,7 @@ public class AStarSearch  {
 	 * 
 	 */
 	public static Graph createGraphToGoalWithBeacons(Toroidal2DPhysics state, Ship myShip, 
-			Position goalPosition, Random random) {
+			Position goalPosition, Random random, boolean canHitMineableAsteroids) {
 		// where am I?
 		Position startPos = myShip.getPosition();
 		
@@ -136,8 +135,12 @@ public class AStarSearch  {
 		// now connect all vertices that are within a specified radius and don't go through an obstacle
 		Set<AbstractObject> obstaclesForGraph = new HashSet<AbstractObject>();
 
-		// don't add an asteroid if it is the goal!
+		// don't add an asteroid if it is the goal, or if it is mineable and we want to hit them
 		for (Asteroid asteroid : state.getAsteroids()) {
+			if (asteroid.isMineable() && canHitMineableAsteroids) {
+				continue;
+			}
+			
 			if (!asteroid.getPosition().equals(goalPosition)) {
 				obstaclesForGraph.add(asteroid);
 			}
