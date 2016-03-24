@@ -1,4 +1,4 @@
-package asan1008;
+package archive;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -327,26 +327,6 @@ public class Grid {
 		return path;
 	}
 	
-	/**
-	 * Draw path created from A* search (for debugging in simulator)
-	 * 
-	 * @param path
-	 * @param space
-	 * @return
-	 */
-	public ArrayList<SpacewarGraphics> drawPath(LinkedList<GridNode> path, Toroidal2DPhysics space){
-		Iterator<GridNode> iterator = path.iterator();
-		Position prev = iterator.next().getPosition();
-		while(iterator.hasNext()) {
-			Position current = iterator.next().getPosition();
-			graphicsToAdd.add(new StarGraphics(3, Color.CYAN, path.get(0).getPosition()));
-			LineGraphics line = new LineGraphics(prev, current, space.findShortestDistanceVector(prev, current));
-			line.setLineColor(Color.CYAN);
-			graphicsToAdd.add(line);
-			prev = current;
-		}
-		return graphicsToAdd;
-	}
 }
 
 

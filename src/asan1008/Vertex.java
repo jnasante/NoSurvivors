@@ -8,7 +8,7 @@ import spacesettlers.graphics.SpacewarGraphics;
 import spacesettlers.utilities.Position;
 
 public class Vertex {
-	private Position location;
+	private Position position;
 	private CircleGraphics graphic;
 	private boolean isStart;
 	private boolean isGoal;
@@ -17,9 +17,9 @@ public class Vertex {
 	private boolean expanded;
 	private Vector <Edge> edges;
 	
-	public Vertex(Position location) {
-		this.location = location;
-		graphic = new CircleGraphics(2, Color.WHITE, location);
+	public Vertex(Position position) {
+		this.position = position;
+		graphic = new CircleGraphics(2, Color.WHITE, position);
 		expanded = false;
 		isGoal = false;
 		isStart = false;
@@ -45,7 +45,7 @@ public class Vertex {
 	}
 	
 	public Position getPosition() {
-		return location;
+		return position;
 	}
 	
 	public void setStart() {

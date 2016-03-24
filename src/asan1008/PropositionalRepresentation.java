@@ -88,7 +88,7 @@ public class PropositionalRepresentation {
 	}
 	
 	protected boolean shouldPlan() {
-		return (tick % 10 == 0) ? true : false;
+		return (tick % 15 == 0) ? true : false;
 	}
 	
 }

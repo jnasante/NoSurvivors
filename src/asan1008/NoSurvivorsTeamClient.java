@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+
 import spacesettlers.actions.AbstractAction;
 import spacesettlers.actions.DoNothingAction;
 import spacesettlers.actions.PurchaseCosts;
@@ -31,13 +32,13 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	PropositionalRepresentation propositionalKnowledge;
 	RelationalRepresentation relationalKnowledge;
 	ArrayList<SpacewarGraphics> graphicsToAdd = new ArrayList<SpacewarGraphics>();
-	LinkedList<GridNode> currentPath;
+	LinkedList<Vertex> currentPath;
 	AbstractObject currentGoalObject;
-	Grid grid;
-	
+	HashMap <UUID, Graph> graphByShip;
+
 	// Powerups
 	double weaponsProbability = 1;
-	boolean willShoot = false;
+	boolean shouldShoot = false;
 
 	/**
 	 * Generates the action that must be executed in this time step based on
@@ -56,13 +57,10 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					//log("should plan");
 					if (currentGoalObject != null) {
 						//log("is planning");
-						grid = new Grid(space, ship, currentGoalObject, ship.getEnergy() > 500);
-						currentPath = grid.getPathToGoal(space);
-						
-						/* Uncomment line below to draw path as planning takes place */
-						if (currentPath != null) graphicsToAdd = grid.drawPath(currentPath, space);
+						getAStarPathToGoal(space, ship, currentGoalObject.getPosition());
 					}
 				}
+				
 				actions.put(ship.getId(), action);
 
 			} else {
@@ -105,7 +103,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			return new DoNothingAction();
 		}
 		
-		if (grid != null && currentPath != null && !currentPath.isEmpty() && grid.getNodeByObject(ship).getPosition().equals(currentPath.getLast().getPosition())) {
+		if (reachedVertex(space, ship)) {
 			currentPath.removeLast();
 		}
 
@@ -121,9 +119,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 						.getDistanceBetweenTargetBeaconAndEnemy() < propositionalKnowledge.SHORT_DISTANCE
 						|| propositionalKnowledge.getDistanceToBeacon() > propositionalKnowledge
 								.getDistanceBetweenTargetBeaconAndEnemy()) {
-					willShoot = true;
+					shouldShoot = true;
 				} else {
-					willShoot = false;
+					shouldShoot = false;
 				}
 
 				if (propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.SHORT_DISTANCE
@@ -154,14 +152,14 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		// if the ship has enough resourcesAvailable, take it back to base
 		if (ship.getResources().getTotal() > 1000) {
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(), ship);
-			willShoot = false;
+			shouldShoot = false;
 //			log("Going toward base, with loot");
 			return newAction;
 		}
 
 		// We have a current target enemy, so keep aiming for that
 		if (relationalKnowledge.getCurrentTargetEnemy() != null) {
-			willShoot = shouldShootAtEnemy(space, ship);
+			shouldShoot = shouldShootAtEnemy(space, ship);
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetEnemy(), ship);
 //			log("Hunting target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
 			return newAction;
@@ -172,7 +170,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 			// If nothing exists, do nothing
 			if (relationalKnowledge.getNearestAsteroid() == null && relationalKnowledge.getNearestEnemy() == null) {
-				willShoot = false;
+				shouldShoot = false;
 				
 				// If nothing to do, go to nearest beacon to heal
 				if (relationalKnowledge.getNearestBeacon() != null) {
@@ -198,14 +196,14 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					// || propositionalKnowledge.getDistanceToEnemy() -
 					// propositionalKnowledge.getDistanceToAsteroid() < 250
 					|| relationalKnowledge.getNearestEnemy() == null) {
-				willShoot = false;
+				shouldShoot = false;
 				newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestAsteroid(), ship);
 				//log("Moving toward asteroid. Gonna get me some money.");
 				return newAction;
 			}
 
 			// Go for the enemy!
-			willShoot = shouldShootAtEnemy(space, ship);
+			shouldShoot = shouldShootAtEnemy(space, ship);
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestEnemy(), ship);
 			relationalKnowledge.setCurrentTargetEnemy(relationalKnowledge.getNearestEnemy());
 			//log("Moving toward new enemy, attempting to annihilate new target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
@@ -223,6 +221,35 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		return new DoNothingAction();
 	}
 	
+	/**
+	 * Follow an aStar path to the goal
+	 * @param space
+	 * @param ship
+	 * @param goalPosition
+	 * @return
+	 */
+	private void getAStarPathToGoal(Toroidal2DPhysics space, Ship ship, Position goalPosition) {
+		Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random());
+		currentPath = graph.findAStarPath(space);
+		
+		/* Draw path as planning takes place */
+		if (currentPath != null) graphicsToAdd = graph.drawPath(currentPath, space);
+	}
+	
+	private boolean reachedVertex(Toroidal2DPhysics space, Ship ship) {
+		return 
+				currentPath != null && 
+				!currentPath.isEmpty() && 
+				space.findShortestDistance(ship.getPosition(), currentPath.getLast().getPosition()) < propositionalKnowledge.SHORT_DISTANCE;
+	}
+
+	/** 
+	 * Decide whether or not to shoot (true if we are oriented toward the enemy)
+	 * 
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
 	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {
 		return relationalKnowledge.enemyOnPath(space, ship) && propositionalKnowledge.getDistanceToEnemy() <= propositionalKnowledge.SHOOTING_DISTANCE;
 	}
@@ -244,12 +271,12 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		currentGoalObject = goalObject;
 				
 		// The magnitude of our velocity vector. If we are dangerously low on energy, slow down
-		final int VELOCITY_MAGNITUDE = ship.getEnergy() > 500 ? 85 : 50;
+		final int VELOCITY_MAGNITUDE = ship.getEnergy() > 1000 ? 85 : 50;
 		
 		// Next node we are targeting on the path
 		Position targetPosition = currentPath != null && !currentPath.isEmpty() && 
 				space.findShortestDistance(propositionalKnowledge.getCurrentPosition(), goalObject.getPosition()) > propositionalKnowledge.SHORT_DISTANCE ? 
-						currentPath.getLast().getPosition() : goalObject.getPosition();
+			currentPath.getLast().getPosition() : goalObject.getPosition(); 
 		
 		// Distance to target position
 		Vector2D distance = space.findShortestDistanceVector(propositionalKnowledge.getCurrentPosition(), targetPosition);
@@ -281,6 +308,19 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			PurchaseCosts purchaseCosts) {
 
 		HashMap<UUID, PurchaseTypes> purchases = new HashMap<UUID, PurchaseTypes>();
+
+		// can we buy another ship?
+		if (purchaseCosts.canAfford(PurchaseTypes.SHIP, resourcesAvailable)) {
+			for (AbstractActionableObject actionableObject : actionableObjects) {
+				if (actionableObject instanceof Ship) {
+					Ship ship = (Ship) actionableObject;
+					if (ship.isValidPowerup(PurchaseTypes.SHIP.getPowerupMap())) {
+						purchases.put(ship.getId(), PurchaseTypes.SHIP);
+						log("buying ship");
+					}
+				}
+			}
+		}
 
 		// can we upgrade weapons?
 		if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY, resourcesAvailable)) {
@@ -348,7 +388,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		for (AbstractActionableObject actionableObject : actionableObjects) {
 			SpaceSettlersPowerupEnum powerup = SpaceSettlersPowerupEnum.values()[random
 					.nextInt(SpaceSettlersPowerupEnum.values().length)];
-			if (actionableObject.isValidPowerup(powerup) && random.nextDouble() < weaponsProbability && willShoot) {
+			if (actionableObject.isValidPowerup(powerup) && random.nextDouble() < weaponsProbability && shouldShoot) {
 				powerUps.put(actionableObject.getId(), powerup);
 			}
 		}

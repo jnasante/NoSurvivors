@@ -1,4 +1,4 @@
-package asan1008;
+package archive;
 
 import spacesettlers.objects.AbstractObject;
 import spacesettlers.simulator.Toroidal2DPhysics;

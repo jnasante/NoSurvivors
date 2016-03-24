@@ -6,7 +6,6 @@ import spacesettlers.objects.Base;
 import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
 import spacesettlers.simulator.Toroidal2DPhysics;
-import spacesettlers.utilities.Position;
 
 /** 
  * Relational knowledge representation of the environment

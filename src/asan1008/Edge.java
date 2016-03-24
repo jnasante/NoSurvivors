@@ -40,7 +40,7 @@ public class Edge {
 	
 	public void setSolution() {
 		isSolution = true;
-		graphic.setLineColor(Color.YELLOW);
+		graphic.setLineColor(Color.WHITE);
 		graphic.setStrokeWidth(4);
 	}
 }

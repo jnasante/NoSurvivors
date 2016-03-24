@@ -1,6 +1,5 @@
 package asan1008;
 
-
 public class SearchNode {
 	Vertex vertex;
 	Edge edge;

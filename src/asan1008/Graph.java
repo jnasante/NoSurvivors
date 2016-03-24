@@ -1,6 +1,10 @@
 package asan1008;
 
+import java.awt.Color;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.Vector;
@@ -8,8 +12,11 @@ import java.util.Vector;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 
+import spacesettlers.graphics.LineGraphics;
 import spacesettlers.graphics.SpacewarGraphics;
+import spacesettlers.graphics.StarGraphics;
 import spacesettlers.simulator.Toroidal2DPhysics;
+import spacesettlers.utilities.Position;
 
 public class Graph {
 	private Vector <Vertex> vertices;
@@ -17,17 +24,20 @@ public class Graph {
 	private Vector <Vertex>goals;
 	private Vertex start;
 	private static final int maxSearchSteps = 100;
+	public ArrayList<SpacewarGraphics> graphicsToAdd;
 
 	public Graph() {
 		vertices = new Vector<Vertex>();
 		edges = new Vector<Edge>();
 		goals = new Vector<Vertex>();
+		graphicsToAdd = new ArrayList<SpacewarGraphics>();
 	}
 
 	public void reset() {
 		vertices.clear();
 		edges.clear();
 		goals.clear();
+		graphicsToAdd.clear();
 	}
 
 	/**
@@ -112,7 +122,7 @@ public class Graph {
 	 * find an optimal path from the start to the goal using astar
 	 * @return
 	 */
-	public Vertex[] findAStarPath(Toroidal2DPhysics state) {
+	public LinkedList<Vertex> findAStarPath(Toroidal2DPhysics state) {
 		double minDist, dist;
 
 		// initialize the graph
@@ -187,7 +197,7 @@ public class Graph {
 		// and mark it as a solution (so it changes color)
 		if (goalFound) {
 			TreeNode[] path = goalNode.getPath();
-			Vertex[] solutionPath = new Vertex[path.length];
+			LinkedList<Vertex> solutionPath = new LinkedList<Vertex>();
 			
 			//System.out.println("Path is length " + path.length);
 
@@ -196,7 +206,7 @@ public class Graph {
 				
 				SearchNode searchNode = (SearchNode) ((DefaultMutableTreeNode) node).getUserObject();
 				searchNode.getVertex().setSolution();
-				solutionPath[t] = searchNode.getVertex();
+				solutionPath.addFirst(searchNode.getVertex());
 
 				if (searchNode.getEdge() != null) {
 					searchNode.getEdge().setSolution();
@@ -241,6 +251,27 @@ public class Graph {
 
 	public Vertex getStart() {
 		return start;
+	}
+
+	/**
+	 * Draw path created from A* search (for debugging in simulator)
+	 * 
+	 * @param path
+	 * @param space
+	 * @return
+	 */
+	public ArrayList<SpacewarGraphics> drawPath(LinkedList<Vertex> path, Toroidal2DPhysics space){
+		Iterator<Vertex> iterator = path.iterator();
+		Position prev = iterator.next().getPosition();
+		while(iterator.hasNext()) {
+			Position current = iterator.next().getPosition();
+			graphicsToAdd.add(new StarGraphics(3, Color.CYAN, path.get(0).getPosition()));
+			LineGraphics line = new LineGraphics(prev, current, space.findShortestDistanceVector(prev, current));
+			line.setLineColor(Color.CYAN);
+			graphicsToAdd.add(line);
+			prev = current;
+		}
+		return graphicsToAdd;
 	}
 
 }

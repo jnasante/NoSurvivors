@@ -1,5 +1,6 @@
-package asan1008;
+package archive;
 
+import asan1008.Vertex;
 import spacesettlers.actions.AbstractAction;
 import spacesettlers.actions.DoNothingAction;
 import spacesettlers.actions.MoveAction;
