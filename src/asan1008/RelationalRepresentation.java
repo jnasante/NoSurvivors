@@ -1,6 +1,8 @@
 package asan1008;
 
+import java.util.HashMap;
 import java.util.Set;
+import java.util.UUID;
 import spacesettlers.objects.Asteroid;
 import spacesettlers.objects.Base;
 import spacesettlers.objects.Beacon;
@@ -15,11 +17,11 @@ import spacesettlers.utilities.Position;
 public class RelationalRepresentation {
 	
 	// Nearest and target objects
-	private Ship nearestEnemy;
-	private Ship currentTargetEnemy;
-	private Base nearestBase;
-	private Beacon nearestBeacon;
-	private Asteroid nearestAsteroid;
+	private HashMap<UUID, Ship> nearestEnemy = new HashMap<UUID, Ship>();
+	private HashMap<UUID, Ship> currentTargetEnemy = new HashMap<UUID, Ship>();
+	private HashMap<UUID, Base> nearestBase = new HashMap<UUID, Base>();
+	private HashMap<UUID, Beacon> nearestBeacon = new HashMap<UUID, Beacon>();
+	private HashMap<UUID, Asteroid> nearestAsteroid = new HashMap<UUID, Asteroid>();
 	
 	/**
 	 *  Update our knowledge about the current environment
@@ -28,11 +30,10 @@ public class RelationalRepresentation {
 	 * @param ship Our ship
 	 */
 	public void updateRepresentation(Toroidal2DPhysics space, Ship ship) {
-		nearestEnemy = findNearestEnemy(space, ship);
-		nearestBase = findNearestBase(space, ship);
-		nearestBeacon = findNearestBeacon(space, ship);
-		nearestAsteroid = findNearestAsteroid(space, ship);
-		
+		nearestEnemy.put(ship.getId(), findNearestEnemy(space, ship));
+		nearestBase.put(ship.getId(), findNearestBase(space, ship));
+		nearestBeacon.put(ship.getId(), findNearestBeacon(space, ship));
+		nearestAsteroid.put(ship.getId(), findNearestAsteroid(space, ship));		
 		updateTargetEnemy(space, ship);
 	}
 	
@@ -44,15 +45,15 @@ public class RelationalRepresentation {
 	 * @param ship Our ship
 	 */
 	public void updateTargetEnemy(Toroidal2DPhysics space, Ship ship) {
-		if (currentTargetEnemy != null) {
-			if (!currentTargetEnemy.isAlive()) {
-				currentTargetEnemy = null;
+		if (currentTargetEnemy.get(ship.getId()) != null) {
+			if (!currentTargetEnemy.get(ship.getId()).isAlive()) {
+				currentTargetEnemy.put(ship.getId(), null);
 				return;
 			}
 						
 			for (Ship updatedTargetShip : space.getShips()) {
-				if (updatedTargetShip.getId() == currentTargetEnemy.getId()) {
-					currentTargetEnemy = updatedTargetShip;
+				if (updatedTargetShip.getId() == currentTargetEnemy.get(ship.getId()).getId()) {
+					currentTargetEnemy.put(ship.getId(), updatedTargetShip);
 					return;
 				}				
 			}
@@ -62,43 +63,43 @@ public class RelationalRepresentation {
 	/**
 	 * Getter for nearestEnemy
 	 */
-	protected Ship getNearestEnemy() {
-		return nearestEnemy;
+	protected Ship getNearestEnemy(Ship ship) {
+		return nearestEnemy.get(ship.getId());
 	}
 
 	/**
 	 * Getter for nearestBase
 	 */
-	protected Base getNearestBase() {
-		return nearestBase;
+	protected Base getNearestBase(Ship ship) {
+		return nearestBase.get(ship.getId());
 	}
 	
 	/**
 	 * Getter for nearestBeacon
 	 */
-	protected Beacon getNearestBeacon() {
-		return nearestBeacon;
+	protected Beacon getNearestBeacon(Ship ship) {
+		return nearestBeacon.get(ship.getId());
 	}
 	
 	/**
 	 * Getter for nearestAsteroid
 	 */
-	protected Asteroid getNearestAsteroid() {
-		return nearestAsteroid;
+	protected Asteroid getNearestAsteroid(Ship ship) {
+		return nearestAsteroid.get(ship.getId());
 	}
 	
 	/**
 	 * Getter for currentTargetEnemy
 	 */
-	protected Ship getCurrentTargetEnemy() {
-		return currentTargetEnemy;
+	protected Ship getCurrentTargetEnemy(Ship ship) {
+		return currentTargetEnemy.get(ship.getId());
 	}
 
 	/**
 	 * Setter for currentTargetEnemy
 	 */
-	protected void setCurrentTargetEnemy(Ship enemy) {
-		currentTargetEnemy = enemy;
+	protected void setCurrentTargetEnemy(Ship enemy, Ship ship) {
+		currentTargetEnemy.put(ship.getId(), enemy);
 	}
 	
 	/**
@@ -250,10 +251,10 @@ public class RelationalRepresentation {
 		double shipX = ship.getPosition().getX();
 		double shipY = ship.getPosition().getY();
 		double orientation = ship.getPosition().getOrientation();
-		if( currentTargetEnemy != null) {
-			double radius = currentTargetEnemy.getRadius();
-			double enemyX = currentTargetEnemy.getPosition().getX();
-			double enemyY = currentTargetEnemy.getPosition().getY();
+		if( currentTargetEnemy.get(ship.getId()) != null) {
+			double radius = currentTargetEnemy.get(ship.getId()).getRadius();
+			double enemyX = currentTargetEnemy.get(ship.getId()).getPosition().getX();
+			double enemyY = currentTargetEnemy.get(ship.getId()).getPosition().getY();
 			double x1, y1, x2, y2;
 			// check if the x and y distances are of the same sign
 			if((enemyX - shipX) * (enemyY - shipY) > 0) {
@@ -314,9 +315,9 @@ public class RelationalRepresentation {
 	 * @return Double value of orientation to enemy from ship
 	 */
 	public double getTargetOrientationToEnemy(Toroidal2DPhysics space, Ship ship) {
-		if(currentTargetEnemy != null) {
+		if(currentTargetEnemy.get(ship.getId()) != null) {
 			Position currentLoc = ship.getPosition();
-			Position goalLoc = currentTargetEnemy.getPosition();
+			Position goalLoc = currentTargetEnemy.get(ship.getId()).getPosition();
 			double shipX = currentLoc.getX();
 			double shipY = currentLoc.getY();
 			double enemyX = goalLoc.getX();

@@ -36,10 +36,10 @@ import spacesettlers.utilities.Vector2D;
 public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	PropositionalRepresentation propositionalKnowledge;
 	RelationalRepresentation relationalKnowledge;
-	ArrayList<SpacewarGraphics> graphicsToAdd = new ArrayList<SpacewarGraphics>();
-	LinkedList<Vertex> currentPath;
-	AbstractObject currentGoalObject;
-	HashMap <UUID, Graph> graphByShip;
+	HashMap<UUID, ArrayList<SpacewarGraphics>> graphicsToAdd = new HashMap<UUID, ArrayList<SpacewarGraphics>>();
+	HashMap<UUID, LinkedList<Vertex>> currentPath = new HashMap<UUID, LinkedList<Vertex>>();
+	HashMap<UUID, AbstractObject> currentGoalObject = new HashMap<UUID, AbstractObject>();
+	HashMap <UUID, Graph> graphByShip = new HashMap<UUID, Graph>();
 	boolean pathClear = false;
 	boolean shouldUseAStar = false;
 
@@ -65,13 +65,13 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					if (currentGoalObject != null) {
 						HashSet<AbstractObject> obstructions = new HashSet<AbstractObject>();
 						for(AbstractObject object : space.getAllObjects()){
-							if(object instanceof Beacon || object.getId() == currentGoalObject.getId() || object.getId() == ship.getId()){
+							if(object instanceof Beacon || object.getId() == currentGoalObject.get(ship.getId()).getId() || object.getId() == ship.getId()){
 								continue;
 							}
 							obstructions.add(object);
 						}
-						pathClear = shouldUseAStar && space.isPathClearOfObstructions(ship.getPosition(), currentGoalObject.getPosition(), obstructions, 10);
-						getAStarPathToGoal(space, ship, currentGoalObject.getPosition());
+						pathClear = !shouldUseAStar || space.isPathClearOfObstructions(ship.getPosition(), currentGoalObject.get(ship.getId()).getPosition(), obstructions, 10);
+						getAStarPathToGoal(space, ship, currentGoalObject.get(ship.getId()).getPosition());
 					}
 				}
 				
@@ -118,15 +118,15 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		}
 		
 		if (reachedVertex(space, ship)) {
-			currentPath.removeLast();
+			currentPath.get(ship.getId()).removeLast();
 		}
 
 		// If we don't have enough fuel, locate nearest fuel source
-		if (ship.getEnergy() < 1500 && ship.isAlive()) {
-			if (relationalKnowledge.getNearestBeacon() != null) {
+		if (ship.getEnergy() < propositionalKnowledge.LOW_ENERGY && ship.isAlive()) {
+			if (relationalKnowledge.getNearestBeacon(ship) != null) {
 
 				// Going to recharge, release target enemy
-				relationalKnowledge.setCurrentTargetEnemy(null);
+				relationalKnowledge.setCurrentTargetEnemy(null, ship);
 
 				// Find nearest enemy within short distance to target beacon
 				if (propositionalKnowledge
@@ -140,10 +140,10 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 				if (propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.SHORT_DISTANCE
 						|| propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.getDistanceToBase()
-						|| relationalKnowledge.getNearestBase().getEnergy() < 1000) {
+						|| relationalKnowledge.getNearestBase(ship).getEnergy() < propositionalKnowledge.LOW_BASE_ENERGY) {
 					// Beacon is within short distance, or it is closer than the nearest base,
 					// or the base doesn't have enough energy to satisfy our hunger
-					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(), ship);
+					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(ship), ship);
 //					 log("Moving toward beacon at: " + relationalKnowledge.getNearestBeacon().getPosition().getX()
 //					 + ", " + relationalKnowledge.getNearestBeacon().getPosition().getY());
 					return newAction;
@@ -151,7 +151,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			}
 
 			// There is no beacon, or the base is closer and has enough energy
-			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(), ship);
+			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
 			//log("Moving toward base");
 			return newAction;
 		}
@@ -164,17 +164,17 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		}
 
 		// if the ship has enough resourcesAvailable, take it back to base
-		if (ship.getResources().getTotal() > 1000) {
-			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(), ship);
+		if (ship.getResources().getTotal() > propositionalKnowledge.HIGH_RESOURCES) {
+			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
 			shouldShoot = false;
 //			log("Going toward base, with loot");
 			return newAction;
 		}
 
 		// We have a current target enemy, so keep aiming for that
-		if (relationalKnowledge.getCurrentTargetEnemy() != null) {
+		if (relationalKnowledge.getCurrentTargetEnemy(ship) != null) {
 			shouldShoot = shouldShootAtEnemy(space, ship);
-			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetEnemy(), ship);
+			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetEnemy(ship), ship);
 //			log("Hunting target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
 			return newAction;
 		}
@@ -183,18 +183,18 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		if (ship.getCurrentAction() == null || ship.getCurrentAction().isMovementFinished(space)) {
 
 			// If nothing exists, do nothing
-			if (relationalKnowledge.getNearestAsteroid() == null && relationalKnowledge.getNearestEnemy() == null) {
+			if (relationalKnowledge.getNearestAsteroid(ship) == null && relationalKnowledge.getNearestEnemy(ship) == null) {
 				shouldShoot = false;
 				
 				// If nothing to do, go to nearest beacon to heal
-				if (relationalKnowledge.getNearestBeacon() != null) {
-					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(), ship);
+				if (relationalKnowledge.getNearestBeacon(ship) != null) {
+					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(ship), ship);
 					return newAction;
 				}
 									
 				// Go to base if nothing else, to drop off resources and heal
-				if (relationalKnowledge.getNearestBase() != null) {
-					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(), ship);
+				if (relationalKnowledge.getNearestBase(ship) != null) {
+					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
 					return newAction;
 				}
 				
@@ -209,17 +209,17 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					&& propositionalKnowledge.getDistanceToEnemy() > propositionalKnowledge.SHORT_DISTANCE
 					// || propositionalKnowledge.getDistanceToEnemy() -
 					// propositionalKnowledge.getDistanceToAsteroid() < 250
-					|| relationalKnowledge.getNearestEnemy() == null) {
+					|| relationalKnowledge.getNearestEnemy(ship) == null) {
 				shouldShoot = false;
-				newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestAsteroid(), ship);
+				newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestAsteroid(ship), ship);
 				//log("Moving toward asteroid. Gonna get me some money.");
 				return newAction;
 			}
 
 			// Go for the enemy!
 			shouldShoot = shouldShootAtEnemy(space, ship);
-			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestEnemy(), ship);
-			relationalKnowledge.setCurrentTargetEnemy(relationalKnowledge.getNearestEnemy());
+			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestEnemy(ship), ship);
+			relationalKnowledge.setCurrentTargetEnemy(relationalKnowledge.getNearestEnemy(ship), ship);
 			//log("Moving toward new enemy, attempting to annihilate new target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
 			return newAction;
 		}
@@ -244,22 +244,22 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 */
 	private void getAStarPathToGoal(Toroidal2DPhysics space, Ship ship, Position goalPosition) {
 		if (!pathClear) {
-			Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random(), ship.getEnergy() > 1000);
-			currentPath = graph.findAStarPath(space);
+			Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random(), ship.getEnergy() > propositionalKnowledge.IGNORE_ASTEROIDS_ENERGY);
+			currentPath.put(ship.getId(), graph.findAStarPath(space));
 		} else {
-			if (currentPath != null) currentPath.clear(); else currentPath = new LinkedList<Vertex>();
-			currentPath.add(new Vertex(currentGoalObject.getPosition()));
+			if (currentPath.get(ship.getId()) != null) currentPath.get(ship.getId()).clear(); else currentPath.put(ship.getId(), new LinkedList<Vertex>());
+			currentPath.get(ship.getId()).add(new Vertex(currentGoalObject.get(ship.getId()).getPosition()));
 		}
 		
 		/* Draw path as planning takes place */
-		if (currentPath != null) graphicsToAdd = drawPath(currentPath, space);
+		if (currentPath.get(ship.getId()) != null) graphicsToAdd.put(ship.getId(), drawPath(currentPath.get(ship.getId()), space, ship));
 	}
 	
 	private boolean reachedVertex(Toroidal2DPhysics space, Ship ship) {
 		return 
-				currentPath != null && 
-				!currentPath.isEmpty() && 
-				space.findShortestDistance(ship.getPosition(), currentPath.getLast().getPosition()) < propositionalKnowledge.SHORT_DISTANCE;
+				currentPath.get(ship.getId()) != null && 
+				!currentPath.get(ship.getId()).isEmpty() && 
+				space.findShortestDistance(ship.getPosition(), currentPath.get(ship.getId()).getLast().getPosition()) < propositionalKnowledge.SHORT_DISTANCE;
 	}
 	
 
@@ -270,22 +270,26 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @param space
 	 * @return
 	 */
-	public ArrayList<SpacewarGraphics> drawPath(LinkedList<Vertex> path, Toroidal2DPhysics space) {
+	public ArrayList<SpacewarGraphics> drawPath(LinkedList<Vertex> path, Toroidal2DPhysics space, Ship ship) {
 		Iterator<Vertex> iterator = path.iterator();
 		Position prev = iterator.next().getPosition();
 		
-		graphicsToAdd.clear();
-		graphicsToAdd.add(new StarGraphics(3, Color.CYAN, path.get(0).getPosition()));
-		
-		while(iterator.hasNext()) {
-			Position current = iterator.next().getPosition();
-			LineGraphics line = new LineGraphics(prev, current, space.findShortestDistanceVector(prev, current));
-			line.setLineColor(Color.CYAN);
-			graphicsToAdd.add(line);
-			prev = current;
+		if (graphicsToAdd.get(ship.getId()) != null) {
+			graphicsToAdd.get(ship.getId()).clear();
+			graphicsToAdd.get(ship.getId()).add(new StarGraphics(3, Color.CYAN, path.get(0).getPosition()));
+			
+			while(iterator.hasNext()) {
+				Position current = iterator.next().getPosition();
+				LineGraphics line = new LineGraphics(prev, current, space.findShortestDistanceVector(prev, current));
+				line.setLineColor(Color.CYAN);
+				graphicsToAdd.get(ship.getId()).add(line);
+				prev = current;
+			}
+			
+			return graphicsToAdd.get(ship.getId());
 		}
 		
-		return graphicsToAdd;
+		return new ArrayList<SpacewarGraphics>();
 	}
 
 	/** 
@@ -313,21 +317,21 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private AbstractAction fasterMoveToObjectAction(Toroidal2DPhysics space, AbstractObject goalObject, Ship ship) {
-		currentGoalObject = goalObject;
+		currentGoalObject.put(ship.getId(), goalObject);
 				
 		// The magnitude of our velocity vector. If we are dangerously low on energy, slow down
 		int VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_FAST;
 		
-		if (ship.getEnergy() < 1500) {
+		if (ship.getEnergy() < propositionalKnowledge.LOW_ENERGY) {
 			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_SLOW;
 		} else if (!pathClear) {
 			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_MEDIUM;
 		}
 		
 		// Next node we are targeting on the path
-		Position targetPosition = currentPath != null && !currentPath.isEmpty() && 
+		Position targetPosition = currentPath.get(ship.getId()) != null && !currentPath.get(ship.getId()).isEmpty() && 
 				space.findShortestDistance(propositionalKnowledge.getCurrentPosition(), goalObject.getPosition()) > propositionalKnowledge.SHORT_DISTANCE ? 
-			currentPath.getLast().getPosition() : goalObject.getPosition(); 
+			currentPath.get(ship.getId()).getLast().getPosition() : goalObject.getPosition(); 
 		
 		// Distance to target position
 		Vector2D distance = space.findShortestDistanceVector(propositionalKnowledge.getCurrentPosition(), targetPosition);
@@ -339,7 +343,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		Vector2D targetVelocity;
 		
 		// If we are within short distance of enemy, slow down and attack!
-		if ((relationalKnowledge.getCurrentTargetEnemy() != null && goalObject.getId() == relationalKnowledge.getCurrentTargetEnemy().getId()) && 
+		if ((relationalKnowledge.getCurrentTargetEnemy(ship) != null && goalObject.getId() == relationalKnowledge.getCurrentTargetEnemy(ship).getId()) && 
 				propositionalKnowledge.getDistanceToEnemy() < propositionalKnowledge.SHORT_DISTANCE*2) {
 			targetPosition = goalObject.getPosition();
 			targetVelocity = new Vector2D(0, 0);
@@ -455,7 +459,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	@Override
 	public Set<SpacewarGraphics> getGraphics() {
 		HashSet<SpacewarGraphics> graphics = new HashSet<SpacewarGraphics>();
-		graphics.addAll(graphicsToAdd);
+		for( ArrayList<SpacewarGraphics> draw : graphicsToAdd.values()){
+			graphics.addAll(draw);
+		}
 		return graphics;
 	}
 }

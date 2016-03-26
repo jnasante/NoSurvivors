@@ -1,7 +1,5 @@
 package asan1008;
 
-import org.omg.CORBA.PUBLIC_MEMBER;
-
 import spacesettlers.objects.Ship;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
@@ -30,6 +28,11 @@ public class PropositionalRepresentation {
 	public final int SPEED_FAST = 90;
 	public final int SPEED_MEDIUM = 60;
 	public final int SPEED_SLOW = 40;
+	public final int LOW_ENERGY = 1500;
+	public final int HIGH_RESOURCES = 1000;
+	public final int LOW_BASE_ENERGY = 1000;
+	public final int PLANNING_FREQUENCY = 20;
+	public final int IGNORE_ASTEROIDS_ENERGY = 1000;
 
 	/**
 	 *  Update our knowledge about the current environment
@@ -42,12 +45,12 @@ public class PropositionalRepresentation {
 		currentPosition = ship.getPosition();
 		tick++;
 		
-		distanceToEnemy = relationalRepresentation.getNearestEnemy() == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(currentPosition, relationalRepresentation.getNearestEnemy().getPosition());
-		distanceToBase = relationalRepresentation.getNearestBase() == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(ship.getPosition(), relationalRepresentation.getNearestBase().getPosition());
-		distanceToBeacon = relationalRepresentation.getNearestBeacon() == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(ship.getPosition(), relationalRepresentation.getNearestBeacon().getPosition());
-		distanceToAsteroid = relationalRepresentation.getNearestAsteroid() == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(ship.getPosition(), relationalRepresentation.getNearestAsteroid().getPosition());
-		distanceBetweenTargetBeaconAndEnemy = relationalRepresentation.getNearestEnemy() == null || relationalRepresentation.getNearestBeacon() == null ? 
-				Double.POSITIVE_INFINITY : space.findShortestDistance(relationalRepresentation.getNearestEnemy().getPosition(), relationalRepresentation.getNearestBeacon().getPosition());
+		distanceToEnemy = relationalRepresentation.getNearestEnemy(ship) == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(currentPosition, relationalRepresentation.getNearestEnemy(ship).getPosition());
+		distanceToBase = relationalRepresentation.getNearestBase(ship) == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(ship.getPosition(), relationalRepresentation.getNearestBase(ship).getPosition());
+		distanceToBeacon = relationalRepresentation.getNearestBeacon(ship) == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(ship.getPosition(), relationalRepresentation.getNearestBeacon(ship).getPosition());
+		distanceToAsteroid = relationalRepresentation.getNearestAsteroid(ship) == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(ship.getPosition(), relationalRepresentation.getNearestAsteroid(ship).getPosition());
+		distanceBetweenTargetBeaconAndEnemy = relationalRepresentation.getNearestEnemy(ship) == null || relationalRepresentation.getNearestBeacon(ship) == null ? 
+				Double.POSITIVE_INFINITY : space.findShortestDistance(relationalRepresentation.getNearestEnemy(ship).getPosition(), relationalRepresentation.getNearestBeacon(ship).getPosition());
 	}
 	
 	/**
@@ -93,7 +96,7 @@ public class PropositionalRepresentation {
 	}
 	
 	protected boolean shouldPlan() {
-		return (tick % 20 == 0) ? true : false;
+		return (tick % PLANNING_FREQUENCY == 0) ? true : false;
 	}
 	
 }
