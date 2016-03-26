@@ -411,7 +411,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * 
 	 * @param logMessage Message to be logged
 	 */
-	private void log(String logMessage) {
+	public static void log(String logMessage) {
 		System.out.println(logMessage);
 	}
 
