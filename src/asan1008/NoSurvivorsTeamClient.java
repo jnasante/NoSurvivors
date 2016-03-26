@@ -41,6 +41,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	AbstractObject currentGoalObject;
 	HashMap <UUID, Graph> graphByShip;
 	boolean pathClear = false;
+	boolean shouldUseAStar = false;
 
 	// Powerups
 	double weaponsProbability = 1;
@@ -69,8 +70,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 							}
 							obstructions.add(object);
 						}
-						pathClear = space.isPathClearOfObstructions(ship.getPosition(), currentGoalObject.getPosition(), obstructions, 10);
-						pathClear = true;
+						pathClear = shouldUseAStar && space.isPathClearOfObstructions(ship.getPosition(), currentGoalObject.getPosition(), obstructions, 10);
 						getAStarPathToGoal(space, ship, currentGoalObject.getPosition());
 					}
 				}
