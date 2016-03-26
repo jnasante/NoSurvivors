@@ -17,6 +17,7 @@ import spacesettlers.graphics.SpacewarGraphics;
 import spacesettlers.objects.AbstractActionableObject;
 import spacesettlers.objects.AbstractObject;
 import spacesettlers.objects.Base;
+import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
 import spacesettlers.objects.powerups.SpaceSettlersPowerupEnum;
 import spacesettlers.objects.resources.ResourcePile;
@@ -56,8 +57,16 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				if(propositionalKnowledge.shouldPlan()) {
 					//log("should plan");
 					if (currentGoalObject != null) {
-						//log("is planning");
-						getAStarPathToGoal(space, ship, currentGoalObject.getPosition());
+						HashSet<AbstractObject> obstructions = new HashSet<AbstractObject>();
+						for(AbstractObject object : space.getAllObjects()){
+							if(object instanceof Beacon || object.getId() == currentGoalObject.getId() || object.getId() == ship.getId()){
+								continue;
+							}
+							obstructions.add(object);
+							log("an obstruction: " + object.getId());
+						}
+						boolean pathClear = space.isPathClearOfObstructions(ship.getPosition(), currentGoalObject.getPosition(), obstructions, 10);
+						getAStarPathToGoal(space, ship, currentGoalObject.getPosition(), pathClear);
 					}
 				}
 				
@@ -228,12 +237,17 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @param goalPosition
 	 * @return
 	 */
-	private void getAStarPathToGoal(Toroidal2DPhysics space, Ship ship, Position goalPosition) {
-		Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random(), ship.getEnergy() > 1000);
-		currentPath = graph.findAStarPath(space);
-		
-		/* Draw path as planning takes place */
-		if (currentPath != null) graphicsToAdd = graph.drawPath(currentPath, space);
+	private void getAStarPathToGoal(Toroidal2DPhysics space, Ship ship, Position goalPosition, boolean pathClear) {
+		if (!pathClear) {
+			Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random(), ship.getEnergy() > 1000);
+			currentPath = graph.findAStarPath(space);
+
+			/* Draw path as planning takes place */
+			if (currentPath != null) graphicsToAdd = graph.drawPath(currentPath, space);
+		} else {
+			currentPath.clear();
+			currentPath.add(new Vertex(currentGoalObject.getPosition()));
+		}
 	}
 	
 	private boolean reachedVertex(Toroidal2DPhysics space, Ship ship) {

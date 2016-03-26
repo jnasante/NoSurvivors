@@ -1,7 +1,5 @@
 package asan1008;
 
-import javafx.geometry.Pos;
-import spacesettlers.actions.MoveAction;
 import spacesettlers.objects.AbstractObject;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;

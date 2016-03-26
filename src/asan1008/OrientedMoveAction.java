@@ -207,7 +207,6 @@ public class OrientedMoveAction extends AbstractAction {
 	 */
 	public double pdControlOrientToGoal(Toroidal2DPhysics space, Position goalLoc,
 			Position currentLoc, double goalAngularVelocity) {
-
 		double error1 = targetOrientation == 10.0 ? 
 				getOrientationError(space, goalLoc, currentLoc) : getTargetOrientationError(space, currentLoc);
 		
