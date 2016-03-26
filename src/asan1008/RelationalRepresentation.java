@@ -6,6 +6,7 @@ import spacesettlers.objects.Base;
 import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
 import spacesettlers.simulator.Toroidal2DPhysics;
+import spacesettlers.utilities.Position;
 
 /** 
  * Relational knowledge representation of the environment
@@ -314,12 +315,24 @@ public class RelationalRepresentation {
 	 */
 	public double getTargetOrientationToEnemy(Toroidal2DPhysics space, Ship ship) {
 		if(currentTargetEnemy != null) {
-			double shipX = ship.getPosition().getX();
-			double shipY = ship.getPosition().getY();
-			double enemyX = currentTargetEnemy.getPosition().getX();
-			double enemyY = currentTargetEnemy.getPosition().getY();		
+			Position currentLoc = ship.getPosition();
+			Position goalLoc = currentTargetEnemy.getPosition();
+			double shipX = currentLoc.getX();
+			double shipY = currentLoc.getY();
+			double enemyX = goalLoc.getX();
+			double enemyY = goalLoc.getY();			
 			double xDist = enemyX - shipX;
 			double yDist = enemyY - shipY;
+			
+			double halfWidth = space.getWidth()/2;
+			double halfHeight = space.getHeight()/2;
+			double absXDist = Math.abs(xDist);
+			double absYDist = Math.abs(yDist);
+			
+			if(absXDist > halfWidth || absYDist > halfHeight) {
+				return 10.0;
+			}
+			
 			double degree = Math.toDegrees(Math.atan2(yDist, xDist));
 			double radian = -((-degree)*Math.PI/180);
 			return radian;
