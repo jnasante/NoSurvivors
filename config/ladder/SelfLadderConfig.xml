@@ -32,6 +32,12 @@
 			<initialRegionCenterY>400</initialRegionCenterY>
 			<initialRegionRadius>300</initialRegionRadius>
 		</HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<configFile>spacesettlersinit.xml</configFile>
+			<teamName>NoSurvivorsTeamClient</teamName>
+			<initialRegionCenterX>400</initialRegionCenterX>
+			<initialRegionCenterY>200</initialRegionCenterY>
+			<initialRegionRadius>300</initialRegionRadius></HighLevelTeamConfig>
 	</staticTeams>
 
 	<!-- The list of variable clients/teams.  Each will participate in numRepeatMatches but against 
