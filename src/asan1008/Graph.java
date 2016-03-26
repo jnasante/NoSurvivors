@@ -253,25 +253,4 @@ public class Graph {
 		return start;
 	}
 
-	/**
-	 * Draw path created from A* search (for debugging in simulator)
-	 * 
-	 * @param path
-	 * @param space
-	 * @return
-	 */
-	public ArrayList<SpacewarGraphics> drawPath(LinkedList<Vertex> path, Toroidal2DPhysics space){
-		Iterator<Vertex> iterator = path.iterator();
-		Position prev = iterator.next().getPosition();
-		while(iterator.hasNext()) {
-			Position current = iterator.next().getPosition();
-			graphicsToAdd.add(new StarGraphics(3, Color.CYAN, path.get(0).getPosition()));
-			LineGraphics line = new LineGraphics(prev, current, space.findShortestDistanceVector(prev, current));
-			line.setLineColor(Color.CYAN);
-			graphicsToAdd.add(line);
-			prev = current;
-		}
-		return graphicsToAdd;
-	}
-
 }

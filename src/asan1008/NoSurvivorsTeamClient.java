@@ -1,8 +1,10 @@
 package asan1008;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Random;
@@ -13,7 +15,9 @@ import spacesettlers.actions.AbstractAction;
 import spacesettlers.actions.DoNothingAction;
 import spacesettlers.actions.PurchaseCosts;
 import spacesettlers.actions.PurchaseTypes;
+import spacesettlers.graphics.LineGraphics;
 import spacesettlers.graphics.SpacewarGraphics;
+import spacesettlers.graphics.StarGraphics;
 import spacesettlers.objects.AbstractActionableObject;
 import spacesettlers.objects.AbstractObject;
 import spacesettlers.objects.Base;
@@ -36,6 +40,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	LinkedList<Vertex> currentPath;
 	AbstractObject currentGoalObject;
 	HashMap <UUID, Graph> graphByShip;
+	boolean pathClear = false;
 
 	// Powerups
 	double weaponsProbability = 1;
@@ -63,10 +68,10 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 								continue;
 							}
 							obstructions.add(object);
-							log("an obstruction: " + object.getId());
 						}
-						boolean pathClear = space.isPathClearOfObstructions(ship.getPosition(), currentGoalObject.getPosition(), obstructions, 10);
-						getAStarPathToGoal(space, ship, currentGoalObject.getPosition(), pathClear);
+						pathClear = space.isPathClearOfObstructions(ship.getPosition(), currentGoalObject.getPosition(), obstructions, 10);
+						pathClear = true;
+						getAStarPathToGoal(space, ship, currentGoalObject.getPosition());
 					}
 				}
 				
@@ -237,17 +242,17 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @param goalPosition
 	 * @return
 	 */
-	private void getAStarPathToGoal(Toroidal2DPhysics space, Ship ship, Position goalPosition, boolean pathClear) {
+	private void getAStarPathToGoal(Toroidal2DPhysics space, Ship ship, Position goalPosition) {
 		if (!pathClear) {
 			Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random(), ship.getEnergy() > 1000);
 			currentPath = graph.findAStarPath(space);
-
-			/* Draw path as planning takes place */
-			if (currentPath != null) graphicsToAdd = graph.drawPath(currentPath, space);
 		} else {
-			currentPath.clear();
+			if (currentPath != null) currentPath.clear(); else currentPath = new LinkedList<Vertex>();
 			currentPath.add(new Vertex(currentGoalObject.getPosition()));
 		}
+		
+		/* Draw path as planning takes place */
+		if (currentPath != null) graphicsToAdd = drawPath(currentPath, space);
 	}
 	
 	private boolean reachedVertex(Toroidal2DPhysics space, Ship ship) {
@@ -255,6 +260,32 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				currentPath != null && 
 				!currentPath.isEmpty() && 
 				space.findShortestDistance(ship.getPosition(), currentPath.getLast().getPosition()) < propositionalKnowledge.SHORT_DISTANCE;
+	}
+	
+
+	/**
+	 * Draw path created from A* search (for debugging in simulator)
+	 * 
+	 * @param path
+	 * @param space
+	 * @return
+	 */
+	public ArrayList<SpacewarGraphics> drawPath(LinkedList<Vertex> path, Toroidal2DPhysics space) {
+		Iterator<Vertex> iterator = path.iterator();
+		Position prev = iterator.next().getPosition();
+		
+		graphicsToAdd.clear();
+		graphicsToAdd.add(new StarGraphics(3, Color.CYAN, path.get(0).getPosition()));
+		
+		while(iterator.hasNext()) {
+			Position current = iterator.next().getPosition();
+			LineGraphics line = new LineGraphics(prev, current, space.findShortestDistanceVector(prev, current));
+			line.setLineColor(Color.CYAN);
+			graphicsToAdd.add(line);
+			prev = current;
+		}
+		
+		return graphicsToAdd;
 	}
 
 	/** 
@@ -285,7 +316,13 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		currentGoalObject = goalObject;
 				
 		// The magnitude of our velocity vector. If we are dangerously low on energy, slow down
-		final int VELOCITY_MAGNITUDE = ship.getEnergy() > 1500 ? 90 : 40;
+		int VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_FAST;
+		
+		if (ship.getEnergy() < 1500) {
+			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_SLOW;
+		} else if (!pathClear) {
+			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_MEDIUM;
+		}
 		
 		// Next node we are targeting on the path
 		Position targetPosition = currentPath != null && !currentPath.isEmpty() && 

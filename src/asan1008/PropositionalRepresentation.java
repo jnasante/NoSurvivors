@@ -1,5 +1,7 @@
 package asan1008;
 
+import org.omg.CORBA.PUBLIC_MEMBER;
+
 import spacesettlers.objects.Ship;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
@@ -21,10 +23,13 @@ public class PropositionalRepresentation {
 	private double distanceToAsteroid;
 	private double distanceBetweenTargetBeaconAndEnemy;
 
-	// Static constants
+	// Constants
 	public final int LARGE_DISTANCE = 400;
 	public final int SHORT_DISTANCE = 60;
 	public final int SHOOTING_DISTANCE = 250;
+	public final int SPEED_FAST = 90;
+	public final int SPEED_MEDIUM = 60;
+	public final int SPEED_SLOW = 40;
 
 	/**
 	 *  Update our knowledge about the current environment
