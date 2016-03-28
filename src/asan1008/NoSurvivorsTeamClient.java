@@ -44,7 +44,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	HashMap <UUID, Graph> graphByShip = new HashMap<UUID, Graph>();
 	UUID asteroidCollectorID;
 	boolean pathClear = false;
-	boolean shouldUseAStar = false;
+	boolean shouldUseAStar = true;
 
 	// Powerups
 	double weaponsProbability = 1;
@@ -367,9 +367,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		} else if (!pathClear) {
 			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_MEDIUM;
 		}
-		
-		VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_SLOW;
-		
+				
 		// Next node we are targeting on the path
 		Position targetPosition = currentPath.get(ship.getId()) != null && !currentPath.get(ship.getId()).isEmpty() && 
 				space.findShortestDistance(propositionalKnowledge.getCurrentPosition(), goalObject.getPosition()) > propositionalKnowledge.SHORT_DISTANCE ? 

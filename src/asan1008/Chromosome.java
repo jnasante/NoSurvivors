@@ -25,7 +25,7 @@ public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome
 	public double SPEED_SLOW = 40;
 	public double LOW_ENERGY = 1500;
 	public double HIGH_RESOURCES = 500;
-	public double ASTEROID_COLLECTING_PROBABILITY = 0.0;
+	public double ASTEROID_COLLECTING_TIMESTEP = 15000;
 	
 	// Constants
 	public final double MUTATION_RATE = 0.00001;
