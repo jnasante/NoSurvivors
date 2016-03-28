@@ -411,7 +411,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			for (AbstractActionableObject actionableObject : actionableObjects) {
 				if (actionableObject instanceof Base) {
 					Base base = (Base) actionableObject;
-					//log("The people's champion is increasing the size of its army");
+					log("The people's champion is increasing the size of its army");
 					purchases.put(base.getId(), PurchaseTypes.SHIP);
 					break;
 				}

@@ -32,7 +32,7 @@ public class PropositionalRepresentation {
 	public final int LOW_BASE_ENERGY = 1000;
 	public final int PLANNING_FREQUENCY = 20;
 	public final int IGNORE_ASTEROIDS_ENERGY = 1000;
-	public final double ASTEROID_COLLECTING_TIMESTEP = 10000;
+	public final double ASTEROID_COLLECTING_TIMESTEP = 15000;
 	public final double ASTEROID_COLLECTING_RADIUS = 200;
 
 	/**
