@@ -11,9 +11,8 @@ import spacesettlers.utilities.Position;
 public class PropositionalRepresentation {
 	
 	// Current given information
-	private double tick = 0;
 	private Position currentPosition;
-	
+	private int tick;
 	// Calculated distances
 	private double distanceToEnemy;
 	private double distanceToBase;
@@ -25,7 +24,7 @@ public class PropositionalRepresentation {
 	public final int LARGE_DISTANCE = 400;
 	public final int SHORT_DISTANCE = 60;
 	public final int SHOOTING_DISTANCE = 250;
-	public final int SPEED_FAST = 90;
+	public final int SPEED_FAST = 80;
 	public final int SPEED_MEDIUM = 60;
 	public final int SPEED_SLOW = 40;
 	public final int LOW_ENERGY = 1500;
@@ -33,6 +32,8 @@ public class PropositionalRepresentation {
 	public final int LOW_BASE_ENERGY = 1000;
 	public final int PLANNING_FREQUENCY = 20;
 	public final int IGNORE_ASTEROIDS_ENERGY = 1000;
+	public final double ASTEROID_COLLECTING_TIMESTEP = 10000;
+	public final double ASTEROID_COLLECTING_RADIUS = 200;
 
 	/**
 	 *  Update our knowledge about the current environment
@@ -43,8 +44,7 @@ public class PropositionalRepresentation {
 	 */
 	public void updateRepresentation(RelationalRepresentation relationalRepresentation, Toroidal2DPhysics space, Ship ship) {
 		currentPosition = ship.getPosition();
-		tick++;
-		
+		tick = space.getCurrentTimestep();
 		distanceToEnemy = relationalRepresentation.getNearestEnemy(ship) == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(currentPosition, relationalRepresentation.getNearestEnemy(ship).getPosition());
 		distanceToBase = relationalRepresentation.getNearestBase(ship) == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(ship.getPosition(), relationalRepresentation.getNearestBase(ship).getPosition());
 		distanceToBeacon = relationalRepresentation.getNearestBeacon(ship) == null ? Double.POSITIVE_INFINITY : space.findShortestDistance(ship.getPosition(), relationalRepresentation.getNearestBeacon(ship).getPosition());
@@ -99,4 +99,7 @@ public class PropositionalRepresentation {
 		return (tick % PLANNING_FREQUENCY == 0) ? true : false;
 	}
 	
+	protected boolean shouldCollectResources() {
+		return (tick < ASTEROID_COLLECTING_TIMESTEP) ? true : false;
+	}
 }

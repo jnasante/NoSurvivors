@@ -15,14 +15,14 @@
 	<randomSeed>0</randomSeed>
 
 	<!-- Scoring mechanism used for this game: Can be Resources, Beacons, ... (more as we add them) -->
-	<scoringMethod>Resources</scoringMethod>
+	<scoringMethod>DamageCorrected</scoringMethod>
 
 	<!-- Specify the number of the beacons.  The locations are initialized randomly -->
 	<numBeacons>6</numBeacons>
 	
 	<!-- Specify the maximum number of ships in a team -->
-	<maximumShipsPerTeam>5</maximumShipsPerTeam>
-	<maximumInitialShipsPerTeam>2</maximumInitialShipsPerTeam>
+	<maximumShipsPerTeam>10</maximumShipsPerTeam>
+	<maximumInitialShipsPerTeam>1</maximumInitialShipsPerTeam>
 	
 	<!-- Specify any controllable clients in the simulator (this can include heuristics).  
 	     Note, all clients are teams since eventually all clients can make new ships. -->

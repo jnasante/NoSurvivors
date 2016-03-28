@@ -16,7 +16,6 @@ public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome
 	public int deaths;
 	public int resourcesDropped;
 	public int damageTaken;
-	
 
 	// Properties
 	public double SHOOTING_DISTANCE = 250;
@@ -26,7 +25,7 @@ public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome
 	public double SPEED_SLOW = 40;
 	public double LOW_ENERGY = 1500;
 	public double HIGH_RESOURCES = 500;
-	public double ASTEROID_COLLECTING_PROBABLITIY = 0.0;
+	public double ASTEROID_COLLECTING_PROBABILITY = 0.0;
 	
 	// Constants
 	public final double MUTATION_RATE = 0.00001;
@@ -44,7 +43,7 @@ public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome
 		SPEED_SLOW = slowSpeed;
 		LOW_ENERGY = lowEnergy;
 		HIGH_RESOURCES = highResources;
-		ASTEROID_COLLECTING_PROBABLITIY = asteroidCollectingProbability;
+		ASTEROID_COLLECTING_PROBABILITY = asteroidCollectingProbability;
 	}
 	
 	public void recordGameObservations(double score, int damageDealt, int resourcesDeposited, int resourcesCollected, int deaths, int resourcesDropped, int damageTaken) {
@@ -64,7 +63,7 @@ public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome
 	}
 	
 	public Chromosome mutate() {
-		Chromosome chromosome = new Chromosome(shipId, SHOOTING_DISTANCE, LARGE_DISTANCE, SHORT_DISTANCE, SPEED_FAST, SPEED_SLOW, LOW_ENERGY, HIGH_RESOURCES, ASTEROID_COLLECTING_PROBABLITIY);
+		Chromosome chromosome = new Chromosome(shipId, SHOOTING_DISTANCE, LARGE_DISTANCE, SHORT_DISTANCE, SPEED_FAST, SPEED_SLOW, LOW_ENERGY, HIGH_RESOURCES, ASTEROID_COLLECTING_PROBABILITY);
 		for (Field field : getClass().getDeclaredFields()) {
 			int mutationConstant = (int) Math.random() * 3;
 			

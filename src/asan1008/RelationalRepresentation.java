@@ -9,6 +9,7 @@ import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
+import sun.util.logging.resources.logging;
 
 /** 
  * Relational knowledge representation of the environment
@@ -19,6 +20,7 @@ public class RelationalRepresentation {
 	// Nearest and target objects
 	private HashMap<UUID, Ship> nearestEnemy = new HashMap<UUID, Ship>();
 	private HashMap<UUID, Ship> currentTargetEnemy = new HashMap<UUID, Ship>();
+	private HashMap<UUID, Asteroid> currentTargetAsteroid = new HashMap<UUID, Asteroid>();
 	private HashMap<UUID, Base> nearestBase = new HashMap<UUID, Base>();
 	private HashMap<UUID, Beacon> nearestBeacon = new HashMap<UUID, Beacon>();
 	private HashMap<UUID, Asteroid> nearestAsteroid = new HashMap<UUID, Asteroid>();
@@ -35,6 +37,7 @@ public class RelationalRepresentation {
 		nearestBeacon.put(ship.getId(), findNearestBeacon(space, ship));
 		nearestAsteroid.put(ship.getId(), findNearestAsteroid(space, ship));		
 		updateTargetEnemy(space, ship);
+		updateTargetAsteroid(space, ship);
 	}
 	
 	/**
@@ -57,6 +60,31 @@ public class RelationalRepresentation {
 					return;
 				}				
 			}
+		}
+	}
+	
+	/**
+	 * If current target asteroid is still alive, update to object to reflect changes in state
+	 * Otherwise, release target so we can perform another action
+	 * 
+	 * @param space Current space instance
+	 * @param ship Our ship
+	 */
+	public void updateTargetAsteroid(Toroidal2DPhysics space, Ship ship) {
+		if (currentTargetAsteroid.get(ship.getId()) != null) {
+			if (!currentTargetAsteroid.get(ship.getId()).isAlive()) {
+				currentTargetAsteroid.put(ship.getId(), null);
+				return;
+			}
+						
+			for (Asteroid updatedTargetAsteroid : space.getAsteroids()) {
+				if (updatedTargetAsteroid.getId() == currentTargetAsteroid.get(ship.getId()).getId()) {
+					currentTargetAsteroid.put(ship.getId(), updatedTargetAsteroid);
+					return;
+				}				
+			}
+			
+			currentTargetAsteroid.put(ship.getId(), null);
 		}
 	}
 
@@ -94,12 +122,26 @@ public class RelationalRepresentation {
 	protected Ship getCurrentTargetEnemy(Ship ship) {
 		return currentTargetEnemy.get(ship.getId());
 	}
+	
+	/**
+	 * Getter for currentTargetAsteroid
+	 */
+	protected Asteroid getCurrentTargetAsteroid(Ship ship) {
+		return currentTargetAsteroid.get(ship.getId());
+	}
 
 	/**
 	 * Setter for currentTargetEnemy
 	 */
 	protected void setCurrentTargetEnemy(Ship enemy, Ship ship) {
 		currentTargetEnemy.put(ship.getId(), enemy);
+	}
+	
+	/**
+	 * Setter for currentTargetAsteroid
+	 */
+	protected void setCurrentTargetAsteroid(Asteroid asteroid, Ship ship) {
+		currentTargetAsteroid.put(ship.getId(), asteroid);
 	}
 	
 	/**
@@ -209,7 +251,7 @@ public class RelationalRepresentation {
 	}
 
 	/**
-	 * Find the nearest, most convenient asteroid
+	 * Find the nearest, most convenient mineable asteroid
 	 * 
 	 * @param space Current space instance
 	 * @param ship Our ship
@@ -217,13 +259,10 @@ public class RelationalRepresentation {
 	 * @return Nearest, most convenient asteroid
 	 */
 	private Asteroid findNearestAsteroid(Toroidal2DPhysics space, Ship ship) {
-		// get the current asteroids
-		Set<Asteroid> asteroids = space.getAsteroids();
-
 		Asteroid closestAsteroid = null;
 		double bestDistance = Double.POSITIVE_INFINITY;
 
-		for (Asteroid asteroid : asteroids) {
+		for (Asteroid asteroid : space.getAsteroids()) {
 			if (!asteroid.isMineable()) {
 				continue;
 			}
@@ -237,6 +276,26 @@ public class RelationalRepresentation {
 
 		return closestAsteroid;
 	}	
+	
+	/**
+	 * Returns the asteroid of highest value within specified radius of our base
+	 * 
+	 * @return
+	 */
+	public Asteroid findHighestValueAsteroidWithinRadius(Toroidal2DPhysics space, Ship ship, double radius) {
+		Set<Asteroid> asteroids = space.getAsteroids();
+		int bestMoney = Integer.MIN_VALUE;
+		Asteroid bestAsteroid = null;
+
+		for (Asteroid asteroid : asteroids) {
+			if (asteroid.isMineable() && asteroid.getResources().getTotal() > bestMoney && 
+					space.findShortestDistance(findNearestBase(space, ship).getPosition(), asteroid.getPosition()) < radius) {
+				bestMoney = asteroid.getResources().getTotal();
+				bestAsteroid = asteroid;
+			}
+		}
+		return bestAsteroid;
+	}
 	
 	/**
 	 * Find out if an enemy is within the line of fire
