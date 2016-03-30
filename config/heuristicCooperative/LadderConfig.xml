@@ -38,7 +38,7 @@
 		 each other and the static teams. -->
 	<variableTeams>
 		<HighLevelTeamConfig>
-			<teamName>NoSurvivorsTeamClient</teamName>
+			<teamName>NothingLeftTeamClient</teamName>
 			<configFile>spacesettlersinit.xml</configFile>
 		</HighLevelTeamConfig>
 	</variableTeams>
