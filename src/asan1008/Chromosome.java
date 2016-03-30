@@ -17,7 +17,7 @@ public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome
 	public Individual agent;
 	
 	// Constants
-	public final double MUTATION_RATE = 0.01;
+	//public final double MUTATION_RATE = 0.01;
 	
 	public Chromosome() {
 		// Empty constructor
@@ -43,6 +43,7 @@ public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome
 			switch (mutationConstant) {
 			case 1:
 				try {
+					double MUTATION_RATE = Math.random() * 0.1;
 					field.set(chromosome.agent, ((double)field.get(agent)) * (1 + MUTATION_RATE));
 				} catch (IllegalArgumentException | IllegalAccessException e) {
 					e.printStackTrace();
@@ -53,6 +54,7 @@ public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome
 				
 			case 2:
 				try {
+					double MUTATION_RATE = Math.random() * 0.1;
 					field.set(chromosome.agent, ((double)field.get(agent)) * (1 - MUTATION_RATE));
 				} catch (IllegalArgumentException | IllegalAccessException e) {
 					e.printStackTrace();
