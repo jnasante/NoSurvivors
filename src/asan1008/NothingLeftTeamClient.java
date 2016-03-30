@@ -16,7 +16,6 @@ import spacesettlers.actions.DoNothingAction;
 import spacesettlers.actions.PurchaseCosts;
 import spacesettlers.actions.PurchaseTypes;
 import spacesettlers.clients.ImmutableTeamInfo;
-import spacesettlers.clients.Team;
 import spacesettlers.graphics.LineGraphics;
 import spacesettlers.graphics.SpacewarGraphics;
 import spacesettlers.graphics.StarGraphics;
@@ -36,14 +35,13 @@ import spacesettlers.utilities.Vector2D;
  * Aggressive client that leaves no survivors
  * 
  */
-public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
+public class NothingLeftTeamClient extends spacesettlers.clients.TeamClient {
 	PropositionalRepresentation propositionalKnowledge;
 	RelationalRepresentation relationalKnowledge;
 	HashMap<UUID, ArrayList<SpacewarGraphics>> graphicsToAdd = new HashMap<UUID, ArrayList<SpacewarGraphics>>();
 	HashMap<UUID, LinkedList<Vertex>> currentPath = new HashMap<UUID, LinkedList<Vertex>>();
 	HashMap<UUID, AbstractObject> currentGoalObject = new HashMap<UUID, AbstractObject>();
 	HashMap <UUID, Graph> graphByShip = new HashMap<UUID, Graph>();
-	UUID asteroidCollectorID;
 	boolean pathClear = false;
 	boolean shouldUseAStar = true;
 
@@ -62,13 +60,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			if (actionable instanceof Ship) {
 				Ship ship = (Ship) actionable;
 				
-				
-				
-				// the first time we initialize, decide which ship is the asteroid collector
-				if (asteroidCollectorID == null) {
-					asteroidCollectorID = ship.getId();
-				}
-
 				AbstractAction action = getAggressiveAction(space, ship);
 				if(propositionalKnowledge.shouldPlan()) {
 					//log("should plan");
@@ -117,8 +108,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		while (iterator.hasNext()) {
 			ImmutableTeamInfo teamInfo = iterator.next();
 			if (teamInfo.getTeamName() == ship.getTeamName()) {
-				// Do something with score
-				teamInfo.getScore();
+				// Do something
 			}
 		}
 		
@@ -148,15 +138,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				// Going to recharge, release target enemy
 				relationalKnowledge.setCurrentTargetEnemy(null, ship);
 
-				// Find nearest enemy within short distance to target beacon
-//				if (propositionalKnowledge
-//						.getDistanceBetweenTargetBeaconAndEnemy() < propositionalKnowledge.SHORT_DISTANCE
-//						|| propositionalKnowledge.getDistanceToBeacon() > propositionalKnowledge
-//								.getDistanceBetweenTargetBeaconAndEnemy()) {
-//					shouldShoot = true;
-//				} else {
-					shouldShoot = false;
-//				}
+				shouldShoot = false;
 
 				if (propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.SHORT_DISTANCE
 						|| propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.getDistanceToBase()
@@ -192,40 +174,15 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		}
 		
 		// Asteroid collecting ship
-		if (asteroidCollectorID == ship.getId() && propositionalKnowledge.shouldCollectResources()) {
-			for (double radius = propositionalKnowledge.ASTEROID_COLLECTING_RADIUS; radius < space.getHeight(); radius += 100) {
-				Asteroid asteroid = relationalKnowledge.findHighestValueAsteroidWithinRadius(space, ship, radius);
-				if (asteroid != null) {
-					shouldShoot = false;
-					newAction = fasterMoveToObjectAction(space, asteroid, ship);
-					return newAction;
-				}
+		for (double radius = propositionalKnowledge.ASTEROID_COLLECTING_RADIUS; radius < space.getHeight(); radius += 100) {
+			Asteroid asteroid = relationalKnowledge.findHighestValueAsteroidWithinRadius(space, ship, radius);
+			if (asteroid != null) {
+				shouldShoot = false;
+				newAction = fasterMoveToObjectAction(space, asteroid, ship);
+				return newAction;
 			}
 		}
 
-		// Asteroid is much more convenient than enemy at this time
-		if (propositionalKnowledge.getDistanceToAsteroid() < propositionalKnowledge.SHORT_DISTANCE
-				&& propositionalKnowledge.getDistanceToEnemy() > propositionalKnowledge.SHORT_DISTANCE
-				&& propositionalKnowledge.shouldCollectResources() 
-				// || propositionalKnowledge.getDistanceToEnemy() -
-				// propositionalKnowledge.getDistanceToAsteroid() < 250
-				|| relationalKnowledge.getNearestEnemy(ship) == null) {
-			shouldShoot = false;
-			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestAsteroid(ship), ship);
-			relationalKnowledge.setCurrentTargetAsteroid(relationalKnowledge.getNearestAsteroid(ship), ship);
-			relationalKnowledge.setCurrentTargetEnemy(null, ship);
-			//log("Moving toward asteroid. Mineable? " + relationalKnowledge.getNearestAsteroid(ship).isMineable());
-			return newAction;
-		}
-
-		// We have a current target enemy, so keep aiming for that
-		if (relationalKnowledge.getCurrentTargetEnemy(ship) != null) {
-			shouldShoot = shouldShootAtEnemy(space, ship);
-			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetEnemy(ship), ship);
-//			log("Hunting target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
-			return newAction;
-		}
-		
 		// We have a current target asteroid, so keep aiming for that
 		if (relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
 			shouldShoot = false;
@@ -262,7 +219,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			// Go for the enemy!
 			shouldShoot = shouldShootAtEnemy(space, ship);
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestEnemy(ship), ship);
-			relationalKnowledge.setCurrentTargetEnemy(relationalKnowledge.getNearestEnemy(ship), ship);
 			//log("Moving toward new enemy, attempting to annihilate new target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
 			return newAction;
 
@@ -408,6 +364,37 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 		HashMap<UUID, PurchaseTypes> purchases = new HashMap<UUID, PurchaseTypes>();
 		
+		// can we buy a base?
+		double BASE_BUYING_DISTANCE = 200;
+		boolean bought_base = false;
+
+		if (purchaseCosts.canAfford(PurchaseTypes.BASE, resourcesAvailable)) {
+			for (AbstractActionableObject actionableObject : actionableObjects) {
+				if (actionableObject instanceof Ship) {
+					Ship ship = (Ship) actionableObject;
+					Set<Base> bases = space.getBases();
+
+					// how far away is this ship to a base of my team?
+					double maxDistance = Double.MIN_VALUE;
+					for (Base base : bases) {
+						if (base.getTeamName().equalsIgnoreCase(getTeamName())) {
+							double distance = space.findShortestDistance(ship.getPosition(), base.getPosition());
+							if (distance > maxDistance) {
+								maxDistance = distance;
+							}
+						}
+					}
+
+					if (maxDistance > BASE_BUYING_DISTANCE) {
+						purchases.put(ship.getId(), PurchaseTypes.BASE);
+						bought_base = true;
+						log("The people's champion is buying another home");
+						break;
+					}
+				}
+			}		
+		}
+		
 		// can we buy another ship?
 		if (purchaseCosts.canAfford(PurchaseTypes.SHIP, resourcesAvailable)) {
 			for (AbstractActionableObject actionableObject : actionableObjects) {
@@ -416,33 +403,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					log("The people's champion is increasing the size of its army");
 					purchases.put(base.getId(), PurchaseTypes.SHIP);
 					break;
-				}
-			}
-		}
-
-		// can we upgrade weapons?
-		if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY, resourcesAvailable) && !propositionalKnowledge.shouldCollectResources()) {
-			for (AbstractActionableObject actionableObject : actionableObjects) {
-				if (actionableObject instanceof Ship) {
-					Ship ship = (Ship) actionableObject;
-					if (!ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY.getPowerupMap())) {
-						purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY);
-						//log("The people's champion is upgrading weapon capacity");
-					}
-				}
-			}
-		}
-
-		// can we upgrade max energy?
-		if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_DOUBLE_MAX_ENERGY, resourcesAvailable) && !propositionalKnowledge.shouldCollectResources()) {
-			//log("Can afford double max energy");
-			for (AbstractActionableObject actionableObject : actionableObjects) {
-				if (actionableObject instanceof Ship) {
-					Ship ship = (Ship) actionableObject;
-					//if (ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_MAX_ENERGY.getPowerupMap())) {
-						purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_MAX_ENERGY);
-						//log("The people's champion is upgrading max energy");
-					//}
 				}
 			}
 		}
