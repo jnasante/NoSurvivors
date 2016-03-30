@@ -1,30 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LadderConfig>
 	<!-- The number of times each match is repeated -->
-	<numRepeatMatches>3</numRepeatMatches>
+	<numRepeatMatches>99</numRepeatMatches>
 
 	<!-- The maximum number of variable (e.g. can change each match) teams in a game -->
-	<maximumNumberVariableTeams>1</maximumNumberVariableTeams>
+	<maximumNumberVariableTeams>5</maximumNumberVariableTeams>
 	
 	<!-- Write out the results to this file -->
 	<outputFileName>self-ladder.html</outputFileName>
 	
 	<!-- The list of static clients/teams.  These play in each match. -->
 	<staticTeams>
-		<HighLevelTeamConfig>
-			<teamName>RandomTeam</teamName>
-			<configFile>random-clientinit.xml</configFile>
-			<initialRegionCenterX>0</initialRegionCenterX>
-			<initialRegionCenterY>0</initialRegionCenterY>
-			<initialRegionRadius>300</initialRegionRadius>
-		</HighLevelTeamConfig>
-		<HighLevelTeamConfig>
-			<teamName>BeaconCollectorTeam</teamName>
-			<configFile>beacon-clientinit.xml</configFile>
-			<initialRegionCenterX>724</initialRegionCenterX>
-			<initialRegionCenterY>300</initialRegionCenterY>
-			<initialRegionRadius>300</initialRegionRadius>
-		</HighLevelTeamConfig>
 		<HighLevelTeamConfig>
 			<teamName>HeuristicMinerTeam</teamName>
 			<configFile>aggressive-heuristic-clientinit.xml</configFile>
@@ -38,8 +24,24 @@
 		 each other and the static teams. -->
 	<variableTeams>
 		<HighLevelTeamConfig>
-			<teamName>NoSurvivorsTeamClient</teamName>
-			<configFile>spacesettlersinit.xml</configFile>
+			<teamName>agent1</teamName>
+			<configFile>agent1init.xml</configFile>
+		</HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<teamName>agent2</teamName>
+			<configFile>agent2init.xml</configFile>
+		</HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<teamName>agent3</teamName>
+			<configFile>agent3init.xml</configFile>
+		</HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<teamName>agent4</teamName>
+			<configFile>agent4init.xml</configFile>
+		</HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<teamName>agent5</teamName>
+			<configFile>agent5init.xml</configFile>
 		</HighLevelTeamConfig>
 	</variableTeams>
 

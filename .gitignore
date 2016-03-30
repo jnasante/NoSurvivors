@@ -1,2 +1,3 @@
 dist/spacesettlers.jar
 build/
+*.DS_Store

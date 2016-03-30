@@ -21,18 +21,10 @@ public class PropositionalRepresentation {
 	private double distanceBetweenTargetBeaconAndEnemy;
 
 	// Constants
-	public final int LARGE_DISTANCE = 400;
-	public final int SHORT_DISTANCE = 60;
-	public final int SHOOTING_DISTANCE = 250;
-	public final int SPEED_FAST = 80;
 	public final int SPEED_MEDIUM = 60;
-	public final int SPEED_SLOW = 40;
-	public final int LOW_ENERGY = 1500;
-	public final int HIGH_RESOURCES = 1000;
-	public final int LOW_BASE_ENERGY = 1000;
 	public final int PLANNING_FREQUENCY = 20;
 	public final int IGNORE_ASTEROIDS_ENERGY = 1000;
-	public final double ASTEROID_COLLECTING_TIMESTEP = 15000;
+	public final int LOW_BASE_ENERGY = 1000;
 	public final double ASTEROID_COLLECTING_RADIUS = 200;
 
 	/**
@@ -99,7 +91,7 @@ public class PropositionalRepresentation {
 		return (tick % PLANNING_FREQUENCY == 0) ? true : false;
 	}
 	
-	protected boolean shouldCollectResources() {
+	protected boolean shouldCollectResources(double ASTEROID_COLLECTING_TIMESTEP) {
 		return (tick < ASTEROID_COLLECTING_TIMESTEP) ? true : false;
 	}
 }
