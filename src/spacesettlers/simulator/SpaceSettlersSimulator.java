@@ -725,7 +725,7 @@ public class SpaceSettlersSimulator {
 				// charge the team for the purchase
 				team.decrementAvailableResources(team.getCurrentCost(purchase));
 				team.updateCost(purchase);
-				System.out.println("Buying a energy doubler");
+				//System.out.println("Buying a energy doubler");
 				break;
 				
 			case POWERUP_DOUBLE_WEAPON_CAPACITY:
@@ -733,7 +733,7 @@ public class SpaceSettlersSimulator {
 				// charge the team for the purchase
 				team.decrementAvailableResources(team.getCurrentCost(purchase));
 				team.updateCost(purchase);
-				System.out.println("Buying a weapons doubler");
+				//System.out.println("Buying a weapons doubler");
 				break;
 		
 			case NOTHING:

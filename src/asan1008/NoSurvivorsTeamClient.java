@@ -1,15 +1,22 @@
 package asan1008;
 
 import java.awt.Color;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.XStreamException;
 
 import spacesettlers.actions.AbstractAction;
 import spacesettlers.actions.DoNothingAction;
@@ -38,13 +45,16 @@ import spacesettlers.utilities.Vector2D;
 public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	PropositionalRepresentation propositionalKnowledge;
 	RelationalRepresentation relationalKnowledge;
-	HashMap<UUID, ArrayList<SpacewarGraphics>> graphicsToAdd = new HashMap<UUID, ArrayList<SpacewarGraphics>>();
-	HashMap<UUID, LinkedList<Vertex>> currentPath = new HashMap<UUID, LinkedList<Vertex>>();
-	HashMap<UUID, AbstractObject> currentGoalObject = new HashMap<UUID, AbstractObject>();
-	HashMap <UUID, Graph> graphByShip = new HashMap<UUID, Graph>();
+	HashMap<UUID, ArrayList<SpacewarGraphics>> graphicsToAdd;
+	HashMap<UUID, LinkedList<Vertex>> currentPath;
+	HashMap<UUID, AbstractObject> currentGoalObject;
+	HashMap <UUID, Graph> graphByShip;
+	Individual agent;
+	Chromosome chromosome;
 	UUID asteroidCollectorID;
 	boolean pathClear = false;
 	boolean shouldUseAStar = true;
+	boolean shouldWriteOut = true;
 
 	// Powerups
 	double weaponsProbability = 1;
@@ -57,14 +67,28 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	public Map<UUID, AbstractAction> getMovementStart(Toroidal2DPhysics space,
 			Set<AbstractActionableObject> actionableObjects) {
 		HashMap<UUID, AbstractAction> actions = new HashMap<UUID, AbstractAction>();
+		
 		for (AbstractObject actionable : actionableObjects) {
 			if (actionable instanceof Ship) {
 				Ship ship = (Ship) actionable;
+				
+				if(space.getCurrentTimestep() == 19998 && shouldWriteOut){
+					Iterator<ImmutableTeamInfo> iterator = space.getTeamInfo().iterator();
+					while (iterator.hasNext()) {
+						ImmutableTeamInfo teamInfo = iterator.next();
+						if (teamInfo.getTeamName() == ship.getTeamName()) {
+							chromosome.calculateFitness(teamInfo.getScore());
+							break;
+						}
+					}
+					shouldWriteOut = false;
+				}
 				
 				// the first time we initialize, decide which ship is the asteroid collector
 				if (asteroidCollectorID == null) {
 					asteroidCollectorID = ship.getId();
 				}
+				
 
 				AbstractAction action = getAggressiveAction(space, ship);
 				if(propositionalKnowledge.shouldPlan()) {
@@ -110,13 +134,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private AbstractAction getAggressiveAction(Toroidal2DPhysics space, Ship ship) {
-		Iterator<ImmutableTeamInfo> iterator = space.getTeamInfo().iterator();
-		while (iterator.hasNext()) {
-			ImmutableTeamInfo teamInfo = iterator.next();
-			if (teamInfo.getTeamName() == ship.getTeamName()) {
-				// Do something
-			}
-		}
 		
 		// Update current knowledge of the environment
 		relationalKnowledge.updateRepresentation(space, ship);
@@ -138,7 +155,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		}
 
 		// If we don't have enough fuel, locate nearest fuel source
-		if (ship.getEnergy() < propositionalKnowledge.LOW_ENERGY && ship.isAlive()) {
+		if (ship.getEnergy() < agent.LOW_ENERGY && ship.isAlive()) {
 			if (relationalKnowledge.getNearestBeacon(ship) != null) {
 
 				// Going to recharge, release target enemy
@@ -154,7 +171,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					shouldShoot = false;
 //				}
 
-				if (propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.SHORT_DISTANCE
+				if (propositionalKnowledge.getDistanceToBeacon() <= agent.SHORT_DISTANCE
 						|| propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.getDistanceToBase()
 						|| relationalKnowledge.getNearestBase(ship).getEnergy() < propositionalKnowledge.LOW_BASE_ENERGY) {
 					// Beacon is within short distance, or it is closer than the nearest base,
@@ -180,7 +197,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		}
 
 		// if the ship has enough resourcesAvailable, take it back to base
-		if (ship.getResources().getTotal() > propositionalKnowledge.HIGH_RESOURCES) {
+		if (ship.getResources().getTotal() > agent.HIGH_RESOURCES) {
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
 			shouldShoot = false;
 //			log("Going toward base, with loot");
@@ -188,7 +205,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		}
 		
 		// Asteroid collecting ship
-		if (asteroidCollectorID == ship.getId() && propositionalKnowledge.shouldCollectResources()) {
+		if (asteroidCollectorID == ship.getId() && propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
 			for (double radius = propositionalKnowledge.ASTEROID_COLLECTING_RADIUS; radius < space.getHeight(); radius += 100) {
 				Asteroid asteroid = relationalKnowledge.findHighestValueAsteroidWithinRadius(space, ship, radius);
 				if (asteroid != null) {
@@ -200,9 +217,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		}
 
 		// Asteroid is much more convenient than enemy at this time
-		if (propositionalKnowledge.getDistanceToAsteroid() < propositionalKnowledge.SHORT_DISTANCE
-				&& propositionalKnowledge.getDistanceToEnemy() > propositionalKnowledge.SHORT_DISTANCE
-				&& propositionalKnowledge.shouldCollectResources() 
+		if (propositionalKnowledge.getDistanceToAsteroid() < agent.SHORT_DISTANCE
+				&& propositionalKnowledge.getDistanceToEnemy() > agent.SHORT_DISTANCE
+				&& propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP) 
 				// || propositionalKnowledge.getDistanceToEnemy() -
 				// propositionalKnowledge.getDistanceToAsteroid() < 250
 				|| relationalKnowledge.getNearestEnemy(ship) == null) {
@@ -299,7 +316,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		return 
 				currentPath.get(ship.getId()) != null && 
 				!currentPath.get(ship.getId()).isEmpty() && 
-				space.findShortestDistance(ship.getPosition(), currentPath.get(ship.getId()).getLast().getPosition()) < propositionalKnowledge.SHORT_DISTANCE;
+				space.findShortestDistance(ship.getPosition(), currentPath.get(ship.getId()).getLast().getPosition()) < agent.SHORT_DISTANCE;
 	}
 	
 
@@ -340,7 +357,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {
-		return relationalKnowledge.enemyOnPath(space, ship) && propositionalKnowledge.getDistanceToEnemy() <= propositionalKnowledge.SHOOTING_DISTANCE;
+		return relationalKnowledge.enemyOnPath(space, ship) && propositionalKnowledge.getDistanceToEnemy() <= agent.SHOOTING_DISTANCE;
 	}
 
 	/**
@@ -360,17 +377,17 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		currentGoalObject.put(ship.getId(), goalObject);
 				
 		// The magnitude of our velocity vector. If we are dangerously low on energy, slow down
-		int VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_FAST;
+		double VELOCITY_MAGNITUDE = agent.SPEED_FAST;
 		
-		if (ship.getEnergy() < propositionalKnowledge.LOW_ENERGY) {
-			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_SLOW;
+		if (ship.getEnergy() < agent.LOW_ENERGY) {
+			VELOCITY_MAGNITUDE = agent.SPEED_SLOW;
 		} else if (!pathClear) {
 			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_MEDIUM;
 		}
 				
 		// Next node we are targeting on the path
 		Position targetPosition = currentPath.get(ship.getId()) != null && !currentPath.get(ship.getId()).isEmpty() && 
-				space.findShortestDistance(propositionalKnowledge.getCurrentPosition(), goalObject.getPosition()) > propositionalKnowledge.SHORT_DISTANCE ? 
+				space.findShortestDistance(propositionalKnowledge.getCurrentPosition(), goalObject.getPosition()) > agent.SHORT_DISTANCE ? 
 			currentPath.get(ship.getId()).getLast().getPosition() : goalObject.getPosition(); 
 		
 		// Distance to target position
@@ -384,7 +401,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 		// If we are within short distance of enemy, slow down and attack!
 		if ((relationalKnowledge.getCurrentTargetEnemy(ship) != null && goalObject.getId() == relationalKnowledge.getCurrentTargetEnemy(ship).getId()) && 
-				propositionalKnowledge.getDistanceToEnemy() < propositionalKnowledge.SHORT_DISTANCE*2) {
+				propositionalKnowledge.getDistanceToEnemy() < agent.SHORT_DISTANCE*2) {
 			targetPosition = goalObject.getPosition();
 			targetVelocity = new Vector2D(0, 0);
 		} else {
@@ -409,38 +426,24 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			for (AbstractActionableObject actionableObject : actionableObjects) {
 				if (actionableObject instanceof Base) {
 					Base base = (Base) actionableObject;
-					log("The people's champion is increasing the size of its army");
+					//log("The people's champion is increasing the size of its army");
 					purchases.put(base.getId(), PurchaseTypes.SHIP);
 					break;
 				}
 			}
 		}
-
-		// can we upgrade max energy?
-		if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_DOUBLE_MAX_ENERGY, resourcesAvailable) && !propositionalKnowledge.shouldCollectResources()) {
-			//log("Can afford double max energy");
-			for (AbstractActionableObject actionableObject : actionableObjects) {
-				if (actionableObject instanceof Ship) {
-					Ship ship = (Ship) actionableObject;
-					//if (ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_MAX_ENERGY.getPowerupMap())) {
-						purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_MAX_ENERGY);
-						//log("The people's champion is upgrading max energy");
-					//}
-				}
-			}
-		}
-
+		
 		// can we upgrade weapons?
-		if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY, resourcesAvailable) && !propositionalKnowledge.shouldCollectResources()) {
+		if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY, resourcesAvailable) && !propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
 			//log("Can afford double weapon capacity");
 			for (AbstractActionableObject actionableObject : actionableObjects) {
 				if (actionableObject instanceof Ship) {
 					//log("weapon:  instance of ship");
 					Ship ship = (Ship) actionableObject;
-					//if (ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY.getPowerupMap())) {
+					if (!ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY.getPowerupMap())) {
 						purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY);
 						//log("The people's champion is upgrading weapon capacity");
-					//}
+					}
 				}
 			}
 		}
@@ -466,6 +469,106 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	public void initialize(Toroidal2DPhysics space) {
 		propositionalKnowledge = new PropositionalRepresentation();
 		relationalKnowledge = new RelationalRepresentation();
+		graphicsToAdd = new HashMap<UUID, ArrayList<SpacewarGraphics>>();
+		currentPath = new HashMap<UUID, LinkedList<Vertex>>();
+		currentGoalObject = new HashMap<UUID, AbstractObject>();
+		graphByShip = new HashMap<UUID, Graph>();
+		
+		XStream xstream = new XStream();
+		xstream.alias("Individual", Individual.class);
+
+		try { 
+			agent = (Individual) xstream.fromXML(new File(getKnowledgeFile()));
+			chromosome = new Chromosome(agent);
+		} catch (XStreamException e) {
+			// if you get an error, handle it other than a null pointer because
+			// the error will happen the first time you run
+			agent = new Individual();
+		}
+	}
+	
+	/**
+	 * Demonstrates saving out to the xstream file
+	 * You can save out other ways too.  This is a human-readable way to examine
+	 * the knowledge you have learned.
+	 */
+	@Override
+	public void shutDown(Toroidal2DPhysics space) {
+		XStream xstream = new XStream();
+		xstream.alias("Individual", Individual.class);
+
+		try { 
+			// if you want to compress the file, change FileOuputStream to a GZIPOutputStream
+			agent.READY = true;
+			xstream.toXML(agent, new FileOutputStream(new File(getKnowledgeFile())));
+		} catch (XStreamException e) {
+			// if you get an error, handle it somehow as it means your knowledge didn't save
+			// the error will happen the first time you run
+			agent = new Individual();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			agent = new Individual();
+		}
+		
+		try {
+			//log("trying to evolve");
+			ArrayList<File> files = new ArrayList<>();
+			ArrayList<Chromosome> chromosomes = new ArrayList<Chromosome>();
+			files.add(new File("asan1008/chromosome1.xml"));
+			files.add(new File("asan1008/chromosome2.xml"));
+			files.add(new File("asan1008/chromosome3.xml"));
+			files.add(new File("asan1008/chromosome4.xml"));
+			files.add(new File("asan1008/chromosome5.xml"));
+			for( File f : files){
+				chromosomes.add(new Chromosome((Individual) xstream.fromXML(f)));
+			}
+			boolean shouldEvolve = true;
+			for( Chromosome chromosome : chromosomes ){
+				if( !chromosome.agent.READY ) {
+					//log("not all files written out");
+					shouldEvolve = false;
+				}
+			}
+			
+			if(shouldEvolve){
+				xstream.alias("Game", Game.class);
+				Game game = (Game) xstream.fromXML(new File("asan1008/game_stats.xml")); 
+				if( game.GAME_NUMBER % 3 == 0) {					
+					Population population = new Population(chromosomes);
+					population.performTournamentSelection(space);
+					Chromosome parentChromosome = population.performCrossover();
+					List<Chromosome> newPop = population.performMutations(parentChromosome);
+					int i = 1;
+					for( Chromosome chromosome : newPop) {
+//						log("new chromosome " + i + " shooting: " + chromosome.agent.SHOOTING_DISTANCE);
+//						log("new chromosome large: " + chromosome.agent.LARGE_DISTANCE);
+//						log("new chromosome short: " + chromosome.agent.SHORT_DISTANCE);
+//						log("new chromosome fast: " + chromosome.agent.SPEED_FAST);
+//						log("new chromosome slow: " + chromosome.agent.SPEED_SLOW);
+						// set up the xml files for the next set of games
+						chromosome.agent.READY = false;
+						chromosome.agent.FITNESS = 0.0;
+						xstream.toXML( chromosome.agent, new FileOutputStream(new File("asan1008/chromosome" + i + ".xml")));
+						i++;
+					}
+				} else {
+					int i = 1;
+					for( Chromosome chromosome : chromosomes) {
+						// set up the xml files for the next set of games
+						chromosome.agent.READY = false;
+						xstream.toXML( chromosome.agent, new FileOutputStream(new File("asan1008/chromosome" + i + ".xml")));
+						i++;
+					}
+				}
+				game.GAME_NUMBER++;
+				xstream.toXML(game, new FileOutputStream(new File("asan1008/game_stats.xml")));		
+			}
+			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 
 	/**
@@ -491,11 +594,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		}
 
 		return powerUps;
-	}
-
-	@Override
-	public void shutDown(Toroidal2DPhysics space) {
-		// ...
 	}
 
 	@Override
