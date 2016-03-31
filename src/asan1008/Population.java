@@ -18,6 +18,7 @@ import spacesettlers.simulator.Toroidal2DPhysics;
 public class Population {
 	
 	private final int SIZE = 5;
+	private final int GAMES_PER_ROUND = 5;
 	public List<Chromosome> chromosomes;
 	private ArrayList<Chromosome> crossoverParents;
 	private final double TOURNAMENT_SELECTION_PROBABILITY = 0.75;
@@ -68,7 +69,7 @@ public class Population {
 			xstream.alias("Game", Game.class);
 			Game game = (Game) xstream.fromXML(new File("asan1008/game_stats.xml"));
 			
-			writer.append(String.valueOf(bestThisLadder.agent.FITNESS/3));
+			writer.append(String.valueOf(bestThisLadder.agent.FITNESS/GAMES_PER_ROUND));
 		    writer.append(',');
 		    writer.append(String.valueOf(game.GAME_NUMBER));
 		    writer.append('\n');

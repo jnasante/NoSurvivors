@@ -23,7 +23,6 @@ import spacesettlers.actions.DoNothingAction;
 import spacesettlers.actions.PurchaseCosts;
 import spacesettlers.actions.PurchaseTypes;
 import spacesettlers.clients.ImmutableTeamInfo;
-import spacesettlers.clients.Team;
 import spacesettlers.graphics.LineGraphics;
 import spacesettlers.graphics.SpacewarGraphics;
 import spacesettlers.graphics.StarGraphics;
@@ -60,6 +59,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	// Powerups
 	double weaponsProbability = 1;
 	boolean shouldShoot = false;
+	private final int GAMES_PER_ROUND = 5;
 
 	/**
 	 * Generates the action that must be executed in this time step based on
@@ -533,7 +533,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			if(shouldEvolve){
 				xstream.alias("Game", Game.class);
 				Game game = (Game) xstream.fromXML(new File("asan1008/game_stats.xml")); 
-				if( game.GAME_NUMBER % 5 == 0) {					
+				if( game.GAME_NUMBER % GAMES_PER_ROUND == 0) {					
 					Population population = new Population(chromosomes);
 					population.performTournamentSelection(space);
 					Chromosome parentChromosome = population.performCrossover();
