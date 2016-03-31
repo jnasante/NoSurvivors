@@ -44,6 +44,17 @@ public class NothingLeftTeamClient extends spacesettlers.clients.TeamClient {
 	HashMap <UUID, Graph> graphByShip = new HashMap<UUID, Graph>();
 	boolean pathClear = false;
 	boolean shouldUseAStar = true;
+	public double SHOOTING_DISTANCE = 100;
+	public double LARGE_DISTANCE = 400;
+	public double SHORT_DISTANCE = 60;
+	public double SPEED_FAST = 80;
+	public double SPEED_SLOW = 40;
+	public double LOW_ENERGY = 1000;
+	public double HIGH_RESOURCES = 1000;
+	public double ASTEROID_COLLECTING_TIMESTEP = 1500;
+	public Double FITNESS;
+	public boolean READY;
+
 
 	// Powerups
 	double weaponsProbability = 1;
@@ -132,7 +143,7 @@ public class NothingLeftTeamClient extends spacesettlers.clients.TeamClient {
 		}
 
 		// If we don't have enough fuel, locate nearest fuel source
-		if (ship.getEnergy() < propositionalKnowledge.LOW_ENERGY && ship.isAlive()) {
+		if (ship.getEnergy() < LOW_ENERGY && ship.isAlive()) {
 			if (relationalKnowledge.getNearestBeacon(ship) != null) {
 
 				// Going to recharge, release target enemy
@@ -140,7 +151,7 @@ public class NothingLeftTeamClient extends spacesettlers.clients.TeamClient {
 
 				shouldShoot = false;
 
-				if (propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.SHORT_DISTANCE
+				if (propositionalKnowledge.getDistanceToBeacon() <= SHORT_DISTANCE
 						|| propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.getDistanceToBase()
 						|| relationalKnowledge.getNearestBase(ship).getEnergy() < propositionalKnowledge.LOW_BASE_ENERGY) {
 					// Beacon is within short distance, or it is closer than the nearest base,
@@ -166,7 +177,7 @@ public class NothingLeftTeamClient extends spacesettlers.clients.TeamClient {
 		}
 
 		// if the ship has enough resourcesAvailable, take it back to base
-		if (ship.getResources().getTotal() > propositionalKnowledge.HIGH_RESOURCES) {
+		if (ship.getResources().getTotal() > HIGH_RESOURCES) {
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
 			shouldShoot = false;
 //			log("Going toward base, with loot");
@@ -259,7 +270,7 @@ public class NothingLeftTeamClient extends spacesettlers.clients.TeamClient {
 		return 
 				currentPath.get(ship.getId()) != null && 
 				!currentPath.get(ship.getId()).isEmpty() && 
-				space.findShortestDistance(ship.getPosition(), currentPath.get(ship.getId()).getLast().getPosition()) < propositionalKnowledge.SHORT_DISTANCE;
+				space.findShortestDistance(ship.getPosition(), currentPath.get(ship.getId()).getLast().getPosition()) < SHORT_DISTANCE;
 	}
 	
 
@@ -300,7 +311,7 @@ public class NothingLeftTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {
-		return relationalKnowledge.enemyOnPath(space, ship) && propositionalKnowledge.getDistanceToEnemy() <= propositionalKnowledge.SHOOTING_DISTANCE;
+		return relationalKnowledge.enemyOnPath(space, ship) && propositionalKnowledge.getDistanceToEnemy() <= SHOOTING_DISTANCE;
 	}
 
 	/**
@@ -320,17 +331,17 @@ public class NothingLeftTeamClient extends spacesettlers.clients.TeamClient {
 		currentGoalObject.put(ship.getId(), goalObject);
 				
 		// The magnitude of our velocity vector. If we are dangerously low on energy, slow down
-		int VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_FAST;
+		double VELOCITY_MAGNITUDE = SPEED_FAST;
 		
-		if (ship.getEnergy() < propositionalKnowledge.LOW_ENERGY) {
-			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_SLOW;
+		if (ship.getEnergy() < LOW_ENERGY) {
+			VELOCITY_MAGNITUDE = SPEED_SLOW;
 		} else if (!pathClear) {
 			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_MEDIUM;
 		}
 				
 		// Next node we are targeting on the path
 		Position targetPosition = currentPath.get(ship.getId()) != null && !currentPath.get(ship.getId()).isEmpty() && 
-				space.findShortestDistance(propositionalKnowledge.getCurrentPosition(), goalObject.getPosition()) > propositionalKnowledge.SHORT_DISTANCE ? 
+				space.findShortestDistance(propositionalKnowledge.getCurrentPosition(), goalObject.getPosition()) > SHORT_DISTANCE ? 
 			currentPath.get(ship.getId()).getLast().getPosition() : goalObject.getPosition(); 
 		
 		// Distance to target position
@@ -344,7 +355,7 @@ public class NothingLeftTeamClient extends spacesettlers.clients.TeamClient {
 		
 		// If we are within short distance of enemy, slow down and attack!
 		if ((relationalKnowledge.getCurrentTargetEnemy(ship) != null && goalObject.getId() == relationalKnowledge.getCurrentTargetEnemy(ship).getId()) && 
-				propositionalKnowledge.getDistanceToEnemy() < propositionalKnowledge.SHORT_DISTANCE*2) {
+				propositionalKnowledge.getDistanceToEnemy() < SHORT_DISTANCE*2) {
 			targetPosition = goalObject.getPosition();
 			targetVelocity = new Vector2D(0, 0);
 		} else {
