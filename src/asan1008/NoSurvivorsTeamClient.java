@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,13 +51,15 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	HashMap<UUID, LinkedList<Vertex>> currentPath;
 	HashMap<UUID, AbstractObject> currentGoalObject;
 	HashMap <UUID, Graph> graphByShip;
+	HashMap<UUID, Boolean> shipDied;
+	ResourceDelivery resourceDelivery;
 	Individual agent;
 	Chromosome chromosome;
 	UUID asteroidCollectorID;
 	String teamName;
 	boolean pathClear = false;
 	boolean shouldUseAStar = true;
-	boolean shouldLearn = true;
+	boolean shouldLearn = false;
 
 	// Powerups
 	double weaponsProbability = 1;
@@ -77,6 +81,10 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				// the first time we initialize, decide which ship is the asteroid collector
 				if (asteroidCollectorID == null) {
 					asteroidCollectorID = ship.getId();
+				}
+				
+				if (shipDied.get(ship.getId()) == null) {
+					shipDied.put(ship.getId(), new Boolean(false));
 				}
 				
 				teamName = ship.getTeamName();
@@ -113,6 +121,17 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	public void getMovementEnd(Toroidal2DPhysics space, Set<AbstractActionableObject> actionableObjects) {
 		
 	}
+	
+	private boolean shouldTrackResourceDeliveries(Ship ship) {
+		if (ship.getId() == asteroidCollectorID && propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
+//			if (ship.getCurrentAction() instanceof FasterMoveToObjectAction &&
+//					((FasterMoveToObjectAction)ship.getCurrentAction()).goalObject instanceof Asteroid) {
+				return true;			
+//			}
+		}
+		
+		return false;
+	}
 
 	/**
 	 * Gets the action for the our aggressive ship, setting priorities in the
@@ -135,10 +154,32 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 		//log("X Velocity: " + ship.getPosition().getxVelocity() + "Y Velocity: " + ship.getPosition().getyVelocity());
 
+		// We died
 		if (!ship.isAlive()) {
 			//log("But I died");
+			if (shouldTrackResourceDeliveries(ship) && 
+					(shipDied.get(ship.getId()).booleanValue() == false)) {
+				//log("Failure to deposit resources.");
+				writeResourceDeliveriesToCsv(0);
+				shipDied.put(ship.getId(), new Boolean(true));
+			}
+			
 			ship.setCurrentAction(null);
+			
 			return new DoNothingAction();
+		} else if (ship.getResources().getTotal() == 0 && ship.getEnergy() > agent.LOW_ENERGY &&
+				ship.getCurrentAction() instanceof FasterMoveToObjectAction && 
+				((FasterMoveToObjectAction)ship.getCurrentAction()).goalObject instanceof Base) {
+			// We deposited resources at base
+			if (shouldTrackResourceDeliveries(ship)) {
+				//log("Deposited resources successfully!");
+				writeResourceDeliveriesToCsv(1);
+			}
+		}
+		
+		// Ship is alive, reset shipDied map
+		if (shipDied.get(ship.getId()).booleanValue() == true) {
+			shipDied.put(ship.getId(), new Boolean(false));
 		}
 		
 		if (reachedVertex(space, ship)) {
@@ -398,6 +439,14 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		} else {
 			targetVelocity = new Vector2D(velocityScale*distance.getXValue(), velocityScale*distance.getYValue());
 		}
+		
+		if (goalObject instanceof Asteroid) {
+			resourceDelivery.setValues(ship.getEnergy(), 
+					space.findShortestDistance(ship.getPosition(), goalObject.getPosition()), 
+					space.findShortestDistance(goalObject.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()), 
+					space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()), 
+					ship.getResources().getTotal());
+		}
 							
 		return new FasterMoveToObjectAction(space, propositionalKnowledge.getCurrentPosition(), goalObject, targetPosition, targetVelocity, relationalKnowledge.getTargetOrientationToEnemy(space, ship));
 	}
@@ -449,6 +498,37 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	public static void log(String logMessage) {
 		System.out.println(logMessage);
 	}
+	
+	public void writeResourceDeliveriesToCsv(int success) {
+		resourceDelivery.setSuccess(success);
+		writeResourceDeliveriesToCsv();
+	}
+	
+	public void writeResourceDeliveriesToCsv() {
+		try {
+			FileWriter writer = new FileWriter("asan1008/resource_delivery_test.csv", true);
+						
+			writer.append(String.valueOf(resourceDelivery.getEnergy()));
+		    writer.append(',');
+			writer.append(String.valueOf(resourceDelivery.getShipToAsteroid()));
+		    writer.append(',');
+			writer.append(String.valueOf(resourceDelivery.getAsteroidToBase()));
+		    writer.append(',');
+			writer.append(String.valueOf(resourceDelivery.getShipToBase()));
+		    writer.append(',');
+			writer.append(String.valueOf(resourceDelivery.getResourcesHeld()));
+		    writer.append(',');
+			writer.append(String.valueOf(resourceDelivery.getSuccess()));
+		    writer.append('\n');
+			
+							
+		    writer.flush();
+		    writer.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
 	@Override
 	/**
@@ -463,12 +543,14 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		currentPath = new HashMap<UUID, LinkedList<Vertex>>();
 		currentGoalObject = new HashMap<UUID, AbstractObject>();
 		graphByShip = new HashMap<UUID, Graph>();
+		shipDied = new HashMap<UUID, Boolean>();
+		resourceDelivery = new ResourceDelivery();
 		
 		XStream xstream = new XStream();
 		xstream.alias("Individual", Individual.class);
 
 		try { 
-			agent = (Individual) xstream.fromXML(new File(getKnowledgeFile()));
+			agent = (Individual) xstream.fromXML(new File(shouldLearn ? getKnowledgeFile() : "asan1008/og.xml"));
 			chromosome = new Chromosome(agent);
 		} catch (XStreamException e) {
 			// if you get an error, handle it other than a null pointer because
