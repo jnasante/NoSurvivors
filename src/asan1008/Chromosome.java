@@ -39,7 +39,7 @@ public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome
 			if(field.getName().equals("READY") || field.getName().equals("FITNESS")){
 				continue;
 			}
-			int mutationConstant = (int) (Math.random() * 3);
+			int mutationConstant = (int) (Math.random() * 6);
 			switch (mutationConstant) {
 			case 1:
 				try {
