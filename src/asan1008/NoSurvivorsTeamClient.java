@@ -52,9 +52,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	Individual agent;
 	Chromosome chromosome;
 	UUID asteroidCollectorID;
+	String teamName;
 	boolean pathClear = false;
 	boolean shouldUseAStar = true;
-	boolean shouldWriteOut = true;
 	boolean shouldLearn = true;
 
 	// Powerups
@@ -74,23 +74,12 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			if (actionable instanceof Ship) {
 				Ship ship = (Ship) actionable;
 				
-				if(space.getCurrentTimestep() == 19998 && shouldWriteOut && shouldLearn){
-					Iterator<ImmutableTeamInfo> iterator = space.getTeamInfo().iterator();
-					while (iterator.hasNext()) {
-						ImmutableTeamInfo teamInfo = iterator.next();
-						if (teamInfo.getTeamName() == ship.getTeamName()) {
-							chromosome.calculateFitness(teamInfo.getScore());
-							break;
-						}
-					}
-					shouldWriteOut = false;
-				}
-				
 				// the first time we initialize, decide which ship is the asteroid collector
 				if (asteroidCollectorID == null) {
 					asteroidCollectorID = ship.getId();
 				}
 				
+				teamName = ship.getTeamName();
 
 				AbstractAction action = getAggressiveAction(space, ship);
 				if(propositionalKnowledge.shouldPlan()) {
@@ -495,6 +484,21 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 */
 	@Override
 	public void shutDown(Toroidal2DPhysics space) {
+		if (!shouldLearn) { 
+			return; 
+		}
+		
+		if(space.getCurrentTimestep() == 19998 && shouldLearn){
+			Iterator<ImmutableTeamInfo> iterator = space.getTeamInfo().iterator();
+			while (iterator.hasNext()) {
+				ImmutableTeamInfo teamInfo = iterator.next();
+				if (teamInfo.getTeamName() == teamName) {
+					chromosome.calculateFitness(teamInfo.getScore());
+					break;
+				}
+			}
+		}
+		
 		XStream xstream = new XStream();
 		xstream.alias("Individual", Individual.class);
 
@@ -523,6 +527,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			for( File f : files){
 				chromosomes.add(new Chromosome((Individual) xstream.fromXML(f)));
 			}
+			
 			boolean shouldEvolve = true;
 			for( Chromosome chromosome : chromosomes ){
 				if( !chromosome.agent.READY ) {
