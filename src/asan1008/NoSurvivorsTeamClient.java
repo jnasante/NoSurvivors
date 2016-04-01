@@ -488,7 +488,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			return; 
 		}
 		
-		if(space.getCurrentTimestep() == 19998 && shouldLearn){
+		if(shouldLearn){
 			Iterator<ImmutableTeamInfo> iterator = space.getTeamInfo().iterator();
 			while (iterator.hasNext()) {
 				ImmutableTeamInfo teamInfo = iterator.next();
@@ -519,12 +519,11 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			//log("trying to evolve");
 			ArrayList<File> files = new ArrayList<>();
 			ArrayList<Chromosome> chromosomes = new ArrayList<Chromosome>();
-			files.add(new File("asan1008/chromosome1.xml"));
-			files.add(new File("asan1008/chromosome2.xml"));
-			files.add(new File("asan1008/chromosome3.xml"));
-			files.add(new File("asan1008/chromosome4.xml"));
-			files.add(new File("asan1008/chromosome5.xml"));
-			for( File f : files){
+			for (int i = 1; i <= Population.SIZE; i++) {
+				files.add(new File("asan1008/chromosome" + i + ".xml"));
+			}
+
+			for( File f : files) {
 				chromosomes.add(new Chromosome((Individual) xstream.fromXML(f)));
 			}
 			
@@ -536,15 +535,16 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				}
 			}
 			
-			if(shouldEvolve){
+			if(shouldEvolve) {
 				xstream.alias("Game", Game.class);
-				Game game = (Game) xstream.fromXML(new File("asan1008/game_stats.xml")); 
-				if( game.GAME_NUMBER % GAMES_PER_ROUND == 0) {					
+				Game game = (Game) xstream.fromXML(new File("asan1008/game_stats.xml"));
+				if( game.GAME_NUMBER % GAMES_PER_ROUND == 0) {
 					Population population = new Population(chromosomes);
-					population.performTournamentSelection(space);
+					population.performRankSelection(space);
 					Chromosome parentChromosome = population.performCrossover();
 					List<Chromosome> newPop = population.performMutations(parentChromosome);
 					int i = 1;
+					log("Setting new chromosome values");
 					for( Chromosome chromosome : newPop) {
 //						log("new chromosome " + i + " shooting: " + chromosome.agent.SHOOTING_DISTANCE);
 //						log("new chromosome large: " + chromosome.agent.LARGE_DISTANCE);

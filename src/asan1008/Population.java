@@ -17,7 +17,7 @@ import spacesettlers.simulator.Toroidal2DPhysics;
 
 public class Population {
 	
-	private final int SIZE = 5;
+	public static final int SIZE = 4;
 	private final int GAMES_PER_ROUND = 5;
 	public List<Chromosome> chromosomes;
 	private ArrayList<Chromosome> crossoverParents;
@@ -43,7 +43,7 @@ public class Population {
 	}
 	
 	// Tournament Selection
-	public void performTournamentSelection(Toroidal2DPhysics space) {
+	public void performRankSelection(Toroidal2DPhysics space) {
 		Collections.sort(chromosomes);
 		
 		Chromosome bestThisLadder = chromosomes.get(chromosomes.size()-1);
@@ -83,12 +83,7 @@ public class Population {
 		
 		// Iterate twice
 		for (int i = 0; i < 2; i++) {
-			double random = Math.random();
-			if (random > TOURNAMENT_SELECTION_PROBABILITY) {
-				crossoverParents.add(chromosomes.remove((int) Math.random() * chromosomes.size()));
-			} else {
-				crossoverParents.add(chromosomes.remove(chromosomes.size()-1));
-			}
+			crossoverParents.add(chromosomes.remove(chromosomes.size()-1));
 		}
 		chromosomes.addAll(crossoverParents);
 	}
