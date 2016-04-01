@@ -55,6 +55,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	boolean pathClear = false;
 	boolean shouldUseAStar = true;
 	boolean shouldWriteOut = true;
+	boolean shouldLearn = true;
 
 	// Powerups
 	double weaponsProbability = 1;
@@ -73,7 +74,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			if (actionable instanceof Ship) {
 				Ship ship = (Ship) actionable;
 				
-				if(space.getCurrentTimestep() == 19998 && shouldWriteOut){
+				if(space.getCurrentTimestep() == 19998 && shouldWriteOut && shouldLearn){
 					Iterator<ImmutableTeamInfo> iterator = space.getTeamInfo().iterator();
 					while (iterator.hasNext()) {
 						ImmutableTeamInfo teamInfo = iterator.next();
