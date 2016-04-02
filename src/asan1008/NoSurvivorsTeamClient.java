@@ -60,6 +60,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	boolean pathClear = false;
 	boolean shouldUseAStar = true;
 	boolean shouldLearn = false;
+	boolean shouldSaveResourceCollectionData = false;
 
 	// Powerups
 	double weaponsProbability = 1;
@@ -125,7 +126,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	private boolean shouldTrackResourceDeliveries(Ship ship, int timeStep) {
 		if ((ship.getTeamName().equals("agent1") || ship.getTeamName().equals("agent2")) && ship.getId() == asteroidCollectorID && 
 				propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP) && 
-				timeStep < 5000) {
+				timeStep < 5000 && shouldSaveResourceCollectionData) {
 				return true;			
 		}
 		
