@@ -11,18 +11,18 @@ learnedFeature = "success"
 # Generate beginning w array
 w = []
 for _ in range(0, len(features)+1):
-	w.append(random.uniform(-10, 10))
+	w.append(random.uniform(-1, 1))
 
-print("Initial w:")
-for weight in w:
-  print(weight)
+# print("Initial w:")
+# for weight in w:
+#   print(weight)
 
 # Hold error over learning iterations
 err_over_time = []
 
 # Learn new w's
 def learn_w(alpha):
-  for _ in range(0, 10):
+  for _ in range(0, 5000):
     sum = 0.0
     for row in range(0, data.shape[0]):
       x = [ 1 ]
@@ -35,7 +35,6 @@ def learn_w(alpha):
         
       for i in range(0, len(w)):
         w[i] = lms(w[i], err, alpha, x[i])
-        print("wi: " + str(w[i]))
 
     err_over_time.append( sum )
 
@@ -52,22 +51,64 @@ def compute_error(w, x, y):
   return predict(w, x) - y
 
 # Define alpha
-alpha = 0.00001
+alpha = 0.00000001
 
 # Learn w's
 learn_w(alpha)
 
-# Output results
+# Create predictions for every day
+f = []
+for row in range(0, actual.shape[0]):
+  x = [ 1 ]
+  for feature in features:
+    x.append(actual[feature][row]) 
+  
+  probability_prediction = predict(w, x)
+  if (probability_prediction < 0.0):
+    f.append(0)
+  elif (probability_prediction > 1.0):
+    f.append(1)
+  else:
+    f.append(probability_prediction)
 
+# Get actual data
+y1 = actual[learnedFeature]
+
+# Predictions for probability
+fig, axes = plot.subplots(nrows=1, ncols=1, sharey=False, sharex=False)
+axes.scatter(range(len(y1)), y1, label='Actual data', color='blue')
+axes.scatter(range(len(f)), f, label='Predicted probability', color='green')
+axes.set_title('Linear Regression Predictions')
+axes.set_ylim([-0.1, 1.1])
+axes.legend()
+
+# Predictions for probability
+fig, axes = plot.subplots(nrows=1, ncols=1, sharey=False, sharex=False)
+axes.plot(range(len(y1)), y1, label='Actual data', color='blue')
+axes.plot(range(len(f)), f, label='Predicted probability', color='green')
+axes.set_title('Linear Regression Predictions')
+axes.set_ylim([-0.1, 1.1])
+axes.legend()
+
+# Error over time
+fig, axes = plot.subplots(nrows=1, ncols=1, sharey=False, sharex=False)
+axes.plot(range(len(err_over_time)), err_over_time)
+axes.set_title("Sum Squared Error vs. Number of Iterations")
+axes.set_ylim([0, 100000])
+plot.show()
+
+
+# Output results
 for weight in w:
   print(weight)
 
-# for error in err_over_time:
-#   print("error: " + str(error))
 
-# Plot error over time
-plot.plot(err_over_time)
-plot.title("Error vs. Number of Iterations")
-plot.xlabel("Numer of Iterations")
-plot.ylabel("Error")
-plot.show()
+# # for error in err_over_time:
+# #   print("error: " + str(error))
+
+# # Plot error over time
+# plot.plot(err_over_time)
+# plot.title("Sum Squared Error vs. Number of Iterations")
+# plot.xlabel("Numer of Iterations")
+# plot.ylabel("Error")
+# plot.show()
