@@ -97,14 +97,3 @@ axes.plot(range(len(err_over_time)), err_over_time)
 axes.set_title("Sum Squared Error vs. Number of Iterations")
 axes.set_ylim([0, 500])
 plot.show()
-
-
-# # for error in err_over_time:
-# #   print("error: " + str(error))
-
-# # Plot error over time
-# plot.plot(err_over_time)
-# plot.title("Sum Squared Error vs. Number of Iterations")
-# plot.xlabel("Numer of Iterations")
-# plot.ylabel("Error")
-# plot.show()

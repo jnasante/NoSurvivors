@@ -2,7 +2,7 @@ import matplotlib.pyplot as plot
 import pandas as pd
 
 # Read file
-data = pd.read_csv('learning.csv')
+data = pd.read_csv('evolution_learning.csv')
 scores = data["score"]
 
 # Draw graph
