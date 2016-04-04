@@ -59,7 +59,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	String teamName;
 	boolean pathClear = false;
 	boolean shouldUseAStar = true;
-	boolean shouldLearn = true;
+	boolean shouldLearn = false;
+	boolean shouldSaveResourceCollectionData = false;
 
 	// Powerups
 	double weaponsProbability = 1;
@@ -122,12 +123,11 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 	}
 	
-	private boolean shouldTrackResourceDeliveries(Ship ship) {
-		if (ship.getId() == asteroidCollectorID && propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
-//			if (ship.getCurrentAction() instanceof FasterMoveToObjectAction &&
-//					((FasterMoveToObjectAction)ship.getCurrentAction()).goalObject instanceof Asteroid) {
-				return false;			
-//			}
+	private boolean shouldTrackResourceDeliveries(Ship ship, int timeStep) {
+		if ((ship.getTeamName().equals("agent1") || ship.getTeamName().equals("agent2")) && ship.getId() == asteroidCollectorID && 
+				propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP) && 
+				timeStep < 5000 && shouldSaveResourceCollectionData) {
+				return true;			
 		}
 		
 		return false;
@@ -157,10 +157,10 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		// We died
 		if (!ship.isAlive()) {
 			//log("But I died");
-			if (shouldTrackResourceDeliveries(ship) && 
-					(shipDied.get(ship.getId()).booleanValue() == false)) {
-				//log("Failure to deposit resources.");
-				writeResourceDeliveriesToCsv(0);
+			if (shouldTrackResourceDeliveries(ship, space.getCurrentTimestep()) && 
+					(!shipDied.get(ship.getId()).booleanValue())) {
+				log("Recording failure to deposit resource at time step: " + space.getCurrentTimestep() + " by ship: " + ship.getId());
+				writeResourceDeliveriesToCsv(ship.getTeamName().equals("agent1"), 0);
 				shipDied.put(ship.getId(), new Boolean(true));
 			}
 			
@@ -171,14 +171,14 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				ship.getCurrentAction() instanceof FasterMoveToObjectAction && 
 				((FasterMoveToObjectAction)ship.getCurrentAction()).goalObject instanceof Base) {
 			// We deposited resources at base
-			if (shouldTrackResourceDeliveries(ship)) {
+			if (shouldTrackResourceDeliveries(ship, space.getCurrentTimestep())) {
 				//log("Deposited resources successfully!");
-				writeResourceDeliveriesToCsv(1);
+				writeResourceDeliveriesToCsv(ship.getTeamName().equals("agent1"), 1);
 			}
 		}
 		
 		// Ship is alive, reset shipDied map
-		if (shipDied.get(ship.getId()).booleanValue() == true) {
+		if (shipDied.get(ship.getId()).booleanValue()) {
 			shipDied.put(ship.getId(), new Boolean(false));
 		}
 		
@@ -499,14 +499,14 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		System.out.println(logMessage);
 	}
 	
-	public void writeResourceDeliveriesToCsv(int success) {
+	public void writeResourceDeliveriesToCsv(Boolean test, int success) {
 		resourceDelivery.setSuccess(success);
-		writeResourceDeliveriesToCsv();
+		writeResourceDeliveriesToCsv(test);
 	}
 	
-	public void writeResourceDeliveriesToCsv() {
+	public void writeResourceDeliveriesToCsv(boolean test) {
 		try {
-			FileWriter writer = new FileWriter("asan1008/resource_delivery_test.csv", true);
+			FileWriter writer = new FileWriter(test ? "asan1008/resource_delivery_test.csv" : "asan1008/resource_delivery_training.csv", true);
 						
 			writer.append(String.valueOf(resourceDelivery.getEnergy()));
 		    writer.append(',');
