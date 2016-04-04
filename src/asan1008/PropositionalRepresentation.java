@@ -1,5 +1,7 @@
 package asan1008;
 
+import org.omg.CORBA.PUBLIC_MEMBER;
+
 import spacesettlers.objects.Ship;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
@@ -25,7 +27,9 @@ public class PropositionalRepresentation {
 	public final int PLANNING_FREQUENCY = 20;
 	public final int IGNORE_ASTEROIDS_ENERGY = 1000;
 	public final int LOW_BASE_ENERGY = 1000;
-	public final double ASTEROID_COLLECTING_RADIUS = 200;
+	public final double MINIMUM_ASTEROID_SEARCH_RADIUS = 200;
+	public final double MAXIMUM_ASTEROID_SEARCH_RADIUS = 400;
+	public final double ASTEROID_COLLECTION_PROBABILITY_THRESHOLD = 0.4;
 
 	/**
 	 *  Update our knowledge about the current environment

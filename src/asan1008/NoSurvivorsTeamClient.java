@@ -159,7 +159,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			//log("But I died");
 			if (shouldTrackResourceDeliveries(ship, space.getCurrentTimestep()) && 
 					(!shipDied.get(ship.getId()).booleanValue())) {
-				log("Recording failure to deposit resource at time step: " + space.getCurrentTimestep() + " by ship: " + ship.getId());
 				writeResourceDeliveriesToCsv(ship.getTeamName().equals("agent1"), 0);
 				shipDied.put(ship.getId(), new Boolean(true));
 			}
@@ -172,7 +171,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				((FasterMoveToObjectAction)ship.getCurrentAction()).goalObject instanceof Base) {
 			// We deposited resources at base
 			if (shouldTrackResourceDeliveries(ship, space.getCurrentTimestep())) {
-				//log("Deposited resources successfully!");
 				writeResourceDeliveriesToCsv(ship.getTeamName().equals("agent1"), 1);
 			}
 		}
@@ -238,12 +236,27 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 		// Asteroid collecting ship
 		if (asteroidCollectorID == ship.getId() && propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
-			for (double radius = propositionalKnowledge.ASTEROID_COLLECTING_RADIUS; radius < space.getHeight(); radius += 100) {
+			for (double radius = propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS; radius <= propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS; radius += 100) {
 				Asteroid asteroid = relationalKnowledge.findHighestValueAsteroidWithinRadius(space, ship, radius);
 				if (asteroid != null) {
-					shouldShoot = false;
-					newAction = fasterMoveToObjectAction(space, asteroid, ship);
-					return newAction;
+					if (resourceDelivery.predictSurvivalProbability(ship.getEnergy(), 
+							space.findShortestDistance(ship.getPosition(), asteroid.getPosition()), 
+							space.findShortestDistance(asteroid.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()), 
+							space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition())) > propositionalKnowledge.ASTEROID_COLLECTION_PROBABILITY_THRESHOLD) {
+						// We will probably survive the trip if we go for another asteroid.
+						// 0.4 because we want to be aggressive and risky, but not stupid
+						shouldShoot = false;
+						newAction = fasterMoveToObjectAction(space, asteroid, ship);
+						return newAction;
+					} else {
+						// We probably won't survive going for another asteroid. Go back to base to deposit what we have and heal.
+						newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
+						shouldShoot = false;
+//						log("Going toward base, with loot");
+						return newAction;
+					}
+					
+					
 				}
 			}
 		}
@@ -444,8 +457,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			resourceDelivery.setValues(ship.getEnergy(), 
 					space.findShortestDistance(ship.getPosition(), goalObject.getPosition()), 
 					space.findShortestDistance(goalObject.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()), 
-					space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()), 
-					ship.getResources().getTotal());
+					space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()));
 		}
 							
 		return new FasterMoveToObjectAction(space, propositionalKnowledge.getCurrentPosition(), goalObject, targetPosition, targetVelocity, relationalKnowledge.getTargetOrientationToEnemy(space, ship));
@@ -515,8 +527,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			writer.append(String.valueOf(resourceDelivery.getAsteroidToBase()));
 		    writer.append(',');
 			writer.append(String.valueOf(resourceDelivery.getShipToBase()));
-		    writer.append(',');
-			writer.append(String.valueOf(resourceDelivery.getResourcesHeld()));
 		    writer.append(',');
 			writer.append(String.valueOf(resourceDelivery.getSuccess()));
 		    writer.append('\n');

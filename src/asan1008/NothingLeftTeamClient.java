@@ -185,7 +185,7 @@ public class NothingLeftTeamClient extends spacesettlers.clients.TeamClient {
 		}
 		
 		// Asteroid collecting ship
-		for (double radius = propositionalKnowledge.ASTEROID_COLLECTING_RADIUS; radius < space.getHeight(); radius += 100) {
+		for (double radius = propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS; radius < space.getHeight(); radius += 100) {
 			Asteroid asteroid = relationalKnowledge.findHighestValueAsteroidWithinRadius(space, ship, radius);
 			if (asteroid != null) {
 				shouldShoot = false;
