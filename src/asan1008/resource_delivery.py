@@ -5,7 +5,7 @@ import random
 data = pd.read_csv('resource_delivery_training.csv')
 actual = pd.read_csv('resource_delivery_test.csv')
 
-features = [ "energy", "ship_to_asteroid", "asteroid_to_base", "resources_held", "ship_to_base"]
+features = [ "energy", "ship_to_asteroid", "asteroid_to_base", "ship_to_base"]
 learnedFeature = "success"
 
 # Generate beginning w array
@@ -13,16 +13,12 @@ w = []
 for _ in range(0, len(features)+1):
 	w.append(random.uniform(-1, 1))
 
-# print("Initial w:")
-# for weight in w:
-#   print(weight)
-
 # Hold error over learning iterations
 err_over_time = []
 
 # Learn new w's
 def learn_w(alpha):
-  for _ in range(0, 5000):
+  for _ in range(0, 2000):
     sum = 0.0
     for row in range(0, data.shape[0]):
       x = [ 1 ]
@@ -71,6 +67,11 @@ for row in range(0, actual.shape[0]):
   else:
     f.append(probability_prediction)
 
+# Output results
+print("w0: " + str(w[0]))
+for i in range (1, len(w)):
+  print(features[i-1] + " bias: " + str(w[i]))
+
 # Get actual data
 y1 = actual[learnedFeature]
 
@@ -94,13 +95,8 @@ axes.legend()
 fig, axes = plot.subplots(nrows=1, ncols=1, sharey=False, sharex=False)
 axes.plot(range(len(err_over_time)), err_over_time)
 axes.set_title("Sum Squared Error vs. Number of Iterations")
-axes.set_ylim([0, 100000])
+axes.set_ylim([0, 500])
 plot.show()
-
-
-# Output results
-for weight in w:
-  print(weight)
 
 
 # # for error in err_over_time:
