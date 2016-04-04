@@ -93,10 +93,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				
 				teamName = ship.getTeamName();
 				
-				if (space.getCurrentTimestep() >= 19999) {
-					//log("Total resources collected: " + ship.getResources().getTotal());
-				}
-
 				AbstractAction action = getAggressiveAction(space, ship);
 				if(propositionalKnowledge.shouldPlan()) {
 					//log("should plan");
