@@ -13,6 +13,7 @@ public class PropositionalRepresentation {
 	// Current given information
 	private Position currentPosition;
 	private int tick;
+	
 	// Calculated distances
 	private double distanceToEnemy;
 	private double distanceToBase;
@@ -27,7 +28,7 @@ public class PropositionalRepresentation {
 	public final int LOW_BASE_ENERGY = 1000;
 	public final double MINIMUM_ASTEROID_SEARCH_RADIUS = 200;
 	public final double MAXIMUM_ASTEROID_SEARCH_RADIUS = 400;
-	public final double ASTEROID_COLLECTION_PROBABILITY_THRESHOLD = 0.4;
+	public final double ASTEROID_COLLECTION_PROBABILITY_THRESHOLD = 0.3;
 
 	/**
 	 *  Update our knowledge about the current environment
