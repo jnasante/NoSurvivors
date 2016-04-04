@@ -1,5 +1,8 @@
 package asan1008;
 
+/**
+ * Individual containing learned chromosome values
+ */
 public class Individual {
 	public double SHOOTING_DISTANCE;
 	public double LARGE_DISTANCE;

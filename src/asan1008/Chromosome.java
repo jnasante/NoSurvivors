@@ -3,17 +3,12 @@ package asan1008;
 import java.lang.reflect.Field;
 import java.util.Comparator;
 
+/**
+ * Chromosome representation for Evolutionary Computation
+ */
 public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome>{
 	
 	// Ship information
-//	public Double fitness;
-//	public int damageDealt;
-//	public int resourcesDeposited;
-//	public int resourcesCollected;
-//	public int deaths;
-//	public int resourcesDropped;
-//	public int damageTaken;
-
 	public Individual agent;
 	
 	public Chromosome() {
@@ -26,47 +21,60 @@ public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome
 	}
 	
 	public void calculateFitness(double score) {
+		// Use score to keep it simple
 		agent.FITNESS += score;
-		//(damageDealt + 2*resourcesDeposited + resourcesCollected) - (10*deaths + 0.5*resourcesDropped + damageTaken);
 	}
 	
+	/**
+	 * Mutate the current chromosome.
+	 * Mutate 1/6 of the time. Half of those 1/6, add to the field. The other half, subtract from the field.
+	 * Mutation of each field is always by 10%.
+	 * 
+	 * @return A mutated copy of the current chromosome
+	 */
 	public Chromosome mutate() {
+		// Create a new chromosome to return later
 		Chromosome chromosome = new Chromosome(new Individual());
+		
 		for (Field field : agent.getClass().getDeclaredFields()) {
 			if(field.getName().equals("READY") || field.getName().equals("FITNESS")){
 				continue;
 			}
-			int mutationConstant = (int) (Math.random() * 20);
+			
+			int mutationConstant = (int) (Math.random() * 12);
 			switch (mutationConstant) {
-			case 1:
-				try {
-					field.set(chromosome.agent, ((double)field.get(agent)) * (1.15));
-				} catch (IllegalArgumentException | IllegalAccessException e) {
-					e.printStackTrace();
-					NoSurvivorsTeamClient.log("Failed to mutate");
-					return null;
-				}
-				break;
+			
+				case 1:
+					// Increase value of field by 10%
+					try {
+						field.set(chromosome.agent, ((double)field.get(agent)) * (1.10));
+					} catch (IllegalArgumentException | IllegalAccessException e) {
+						e.printStackTrace();
+						NoSurvivorsTeamClient.log("Failed to mutate");
+						return null;
+					}
+					break;
 				
-			case 2:
-				try {
-					field.set(chromosome.agent, ((double)field.get(agent)) * (0.85));
-				} catch (IllegalArgumentException | IllegalAccessException e) {
-					e.printStackTrace();
-					NoSurvivorsTeamClient.log("Failed to mutate");
-					return null;
-				}
-				break;
-
-			default:
-				// Don't mutate
-				try {
-					field.set(chromosome.agent, ((double)field.get(agent)));
-				} catch (IllegalArgumentException | IllegalAccessException e) {
-					e.printStackTrace();
-					NoSurvivorsTeamClient.log("Failed to mutate");
-					return null;
-				}
+				case 2:
+					// Decrease value of field by 10%
+					try {
+						field.set(chromosome.agent, ((double)field.get(agent)) * (0.90));
+					} catch (IllegalArgumentException | IllegalAccessException e) {
+						e.printStackTrace();
+						NoSurvivorsTeamClient.log("Failed to mutate");
+						return null;
+					}
+					break;
+	
+				default:
+					// Don't mutate. Just set the fields t
+					try {
+						field.set(chromosome.agent, ((double)field.get(agent)));
+					} catch (IllegalArgumentException | IllegalAccessException e) {
+						e.printStackTrace();
+						NoSurvivorsTeamClient.log("Failed to mutate");
+						return null;
+					}
 				break;
 			}
 		}

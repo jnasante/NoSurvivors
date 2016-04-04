@@ -1,7 +1,5 @@
 package asan1008;
 
-import org.omg.CORBA.PUBLIC_MEMBER;
-
 import spacesettlers.objects.Ship;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
@@ -91,10 +89,22 @@ public class PropositionalRepresentation {
 		return distanceBetweenTargetBeaconAndEnemy;
 	}
 	
+	/**
+	 * Determine whether or not to plan on the current time step
+	 * 
+	 * @return
+	 */
 	protected boolean shouldPlan() {
 		return (tick % PLANNING_FREQUENCY == 0) ? true : false;
 	}
 	
+	/**
+	 * Determine whether or not we should keep collecting asteroids based on 
+	 * the time step set on the agent's chromosome
+	 * 
+	 * @param ASTEROID_COLLECTING_TIMESTEP
+	 * @return
+	 */
 	protected boolean shouldCollectResources(double ASTEROID_COLLECTING_TIMESTEP) {
 		return (tick < ASTEROID_COLLECTING_TIMESTEP) ? true : false;
 	}

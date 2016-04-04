@@ -15,26 +15,29 @@ import com.thoughtworks.xstream.XStreamException;
 
 import spacesettlers.simulator.Toroidal2DPhysics;
 
+/** 
+ * Population representation for evolutionary computation
+ */
 public class Population {
 	
 	public static final int SIZE = 4;
 	private final int GAMES_PER_ROUND = 2;
 	public List<Chromosome> chromosomes;
 	private ArrayList<Chromosome> crossoverParents;
-	//private final double TOURNAMENT_SELECTION_PROBABILITY = 0.75;
 	
 	public Population() {
 		this.chromosomes = new ArrayList<Chromosome>(SIZE);
 		crossoverParents = new ArrayList<>();
-		// Read from file to set values for each chromosome
 	}
 	
 	public Population(ArrayList<Chromosome> chromosomes) {
 		this.chromosomes = chromosomes;
 		crossoverParents = new ArrayList<>();
-		// Read from file to set values for each chromosome
 	}
 	
+	/**
+	 * Create chromosome list of predetermined size 
+	 */
 	public void initializeChromosomes() {
 		chromosomes = new ArrayList<Chromosome>();
 		for (int i = 0; i < SIZE; i++) {
@@ -42,7 +45,11 @@ public class Population {
 		}
 	}
 	
-	// Tournament Selection
+	/** 
+	 * Rank selection. Essentially, always select the top two performing teams.
+	 * 
+	 * @param space
+	 */
 	public void performRankSelection(Toroidal2DPhysics space) {
 		Collections.sort(chromosomes);
 		
@@ -50,6 +57,7 @@ public class Population {
 		Individual bestAgent;
 		XStream xstream = new XStream();
 		xstream.alias("Individual", Individual.class);
+		
 		// Update the best performing agent so far, if the best this ladder has a higher score
 		try { 
 			bestAgent = (Individual) xstream.fromXML(new File("asan1008/best.xml"));
@@ -85,10 +93,16 @@ public class Population {
 		for (int i = 0; i < 2; i++) {
 			crossoverParents.add(chromosomes.remove(chromosomes.size()-1));
 		}
+		
 		chromosomes.addAll(crossoverParents);
 	}
 	
-	// Crossover
+	/** 
+	 * Perform crossover 
+	 * Create new chromosome by alternating which fields we select from each one
+	 * 
+	 * @return New chromosome after crossover
+	 */
 	public Chromosome performCrossover() {
 		Chromosome newChromosome = new Chromosome();
 		Field[] fields = newChromosome.agent.getClass().getDeclaredFields();
@@ -108,7 +122,12 @@ public class Population {
 		return newChromosome;
 	}
 	
-	// Mutation
+	/**
+	 * Perform mutations of chromosome to create next generation
+	 * 
+	 * @param chromosome
+	 * @return
+	 */
 	public List<Chromosome> performMutations(Chromosome chromosome) {
 		for (int i = 0; i < SIZE; i++) {
 			Chromosome newChromosome = chromosome.mutate();

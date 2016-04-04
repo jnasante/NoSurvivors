@@ -59,6 +59,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	String teamName;
 	boolean pathClear = false;
 	boolean shouldUseAStar = true;
+	
+	// Set to true only when we are performing our two learning strategies
 	boolean shouldLearn = false;
 	boolean shouldSaveResourceCollectionData = false;
 
@@ -84,11 +86,16 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					asteroidCollectorID = ship.getId();
 				}
 				
+				// Maintain a hashmap of deaths (to handle multiple time steps of ship.isAlive == false
 				if (shipDied.get(ship.getId()) == null) {
 					shipDied.put(ship.getId(), new Boolean(false));
 				}
 				
 				teamName = ship.getTeamName();
+				
+				if (space.getCurrentTimestep() >= 19999) {
+					//log("Total resources collected: " + ship.getResources().getTotal());
+				}
 
 				AbstractAction action = getAggressiveAction(space, ship);
 				if(propositionalKnowledge.shouldPlan()) {
@@ -150,9 +157,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		propositionalKnowledge.updateRepresentation(relationalKnowledge, space, ship);
 
 		AbstractAction newAction = null;
-		//log("Position: " + ship.getPosition().getX() + ", " + ship.getPosition().getY());
-		
-		//log("X Velocity: " + ship.getPosition().getxVelocity() + "Y Velocity: " + ship.getPosition().getyVelocity());
 
 		// We died
 		if (!ship.isAlive()) {
@@ -190,16 +194,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 				// Going to recharge, release target enemy
 				relationalKnowledge.setCurrentTargetEnemy(null, ship);
-
-				// Find nearest enemy within short distance to target beacon
-//				if (propositionalKnowledge
-//						.getDistanceBetweenTargetBeaconAndEnemy() < propositionalKnowledge.SHORT_DISTANCE
-//						|| propositionalKnowledge.getDistanceToBeacon() > propositionalKnowledge
-//								.getDistanceBetweenTargetBeaconAndEnemy()) {
-//					shouldShoot = true;
-//				} else {
-					shouldShoot = false;
-//				}
+				shouldShoot = false;
 
 				if (propositionalKnowledge.getDistanceToBeacon() <= agent.SHORT_DISTANCE
 						|| propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.getDistanceToBase()
@@ -207,8 +202,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					// Beacon is within short distance, or it is closer than the nearest base,
 					// or the base doesn't have enough energy to satisfy our hunger
 					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(ship), ship);
-//					 log("Moving toward beacon at: " + relationalKnowledge.getNearestBeacon().getPosition().getX()
-//					 + ", " + relationalKnowledge.getNearestBeacon().getPosition().getY());
+					// log("Moving toward beacon at: " + relationalKnowledge.getNearestBeacon().getPosition().getX()
+					// + ", " + relationalKnowledge.getNearestBeacon().getPosition().getY());
 					return newAction;
 				}
 			}
@@ -230,7 +225,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		if (ship.getResources().getTotal() > agent.HIGH_RESOURCES) {
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
 			shouldShoot = false;
-//			log("Going toward base, with loot");
+			// log("Going toward base, with loot");
 			return newAction;
 		}
 		
@@ -244,7 +239,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 							space.findShortestDistance(asteroid.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()), 
 							space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition())) > propositionalKnowledge.ASTEROID_COLLECTION_PROBABILITY_THRESHOLD) {
 						// We will probably survive the trip if we go for another asteroid.
-						// 0.4 because we want to be aggressive and risky, but not stupid
 						shouldShoot = false;
 						newAction = fasterMoveToObjectAction(space, asteroid, ship);
 						return newAction;
@@ -252,11 +246,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 						// We probably won't survive going for another asteroid. Go back to base to deposit what we have and heal.
 						newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
 						shouldShoot = false;
-//						log("Going toward base, with loot");
+						// log("Going toward base, with loot");
 						return newAction;
 					}
-					
-					
 				}
 			}
 		}
@@ -265,8 +257,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		if (propositionalKnowledge.getDistanceToAsteroid() < agent.SHORT_DISTANCE
 				&& propositionalKnowledge.getDistanceToEnemy() > agent.SHORT_DISTANCE
 				&& propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP) 
-				// || propositionalKnowledge.getDistanceToEnemy() -
-				// propositionalKnowledge.getDistanceToAsteroid() < 250
 				|| relationalKnowledge.getNearestEnemy(ship) == null) {
 			shouldShoot = false;
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestAsteroid(ship), ship);
@@ -280,7 +270,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		if (relationalKnowledge.getCurrentTargetEnemy(ship) != null) {
 			shouldShoot = shouldShootAtEnemy(space, ship);
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetEnemy(ship), ship);
-//			log("Hunting target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
+			// log("Hunting target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
 			return newAction;
 		}
 		
@@ -288,7 +278,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		if (relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
 			shouldShoot = false;
 			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetAsteroid(ship), ship);
-//			log("Hunting asteroid);
+			// log("Hunting asteroid);
 			return newAction;
 		}
 
@@ -326,12 +316,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 		}
 		
-//		 if (ship.getCurrentAction() instanceof FasterMoveToObjectAction) { 
-//			 log("Going to old goal object: " + ((FasterMoveToObjectAction)ship.getCurrentAction()).getGoalObject()); 
-//		 } else { 
-//			 log("Performing same old action: " + ship.getCurrentAction());
-//		 }
-		 
 		// return the current action if we cannot determine a new action
 		ship.setCurrentAction(null);
 		return new DoNothingAction();
@@ -363,7 +347,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				!currentPath.get(ship.getId()).isEmpty() && 
 				space.findShortestDistance(ship.getPosition(), currentPath.get(ship.getId()).getLast().getPosition()) < agent.SHORT_DISTANCE;
 	}
-	
 
 	/**
 	 * Draw path created from A* search (for debugging in simulator)
@@ -638,11 +621,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					int i = 1;
 					log("Setting new chromosome values");
 					for( Chromosome chromosome : newPop) {
-//						log("new chromosome " + i + " shooting: " + chromosome.agent.SHOOTING_DISTANCE);
-//						log("new chromosome large: " + chromosome.agent.LARGE_DISTANCE);
-//						log("new chromosome short: " + chromosome.agent.SHORT_DISTANCE);
-//						log("new chromosome fast: " + chromosome.agent.SPEED_FAST);
-//						log("new chromosome slow: " + chromosome.agent.SPEED_SLOW);
 						// set up the xml files for the next set of games
 						chromosome.agent.READY = false;
 						chromosome.agent.FITNESS = 0.0;
@@ -658,10 +636,10 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 						i++;
 					}
 				}
+				
 				game.GAME_NUMBER++;
 				xstream.toXML(game, new FileOutputStream(new File("asan1008/game_stats.xml")));		
 			}
-			
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
