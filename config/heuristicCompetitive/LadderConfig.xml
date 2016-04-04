@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LadderConfig>
 	<!-- The number of times each match is repeated -->
-	<numRepeatMatches>1</numRepeatMatches>
+	<numRepeatMatches>200</numRepeatMatches>
 
 	<!-- The maximum number of variable (e.g. can change each match) teams in a game -->
-	<maximumNumberVariableTeams>4</maximumNumberVariableTeams>
+	<maximumNumberVariableTeams>5</maximumNumberVariableTeams>
 	
 	<!-- Write out the results to this file -->
 	<outputFileName>self-ladder.html</outputFileName>
@@ -38,6 +38,10 @@
 		<HighLevelTeamConfig>
 			<teamName>agent4</teamName>
 			<configFile>agent4init.xml</configFile>
+		</HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<teamName>agent5</teamName>
+			<configFile>agent5init.xml</configFile>
 		</HighLevelTeamConfig>
 	</variableTeams>
 

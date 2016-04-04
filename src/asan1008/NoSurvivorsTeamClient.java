@@ -59,12 +59,12 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	String teamName;
 	boolean pathClear = false;
 	boolean shouldUseAStar = true;
-	boolean shouldLearn = false;
+	boolean shouldLearn = true;
 
 	// Powerups
 	double weaponsProbability = 1;
 	boolean shouldShoot = false;
-	private final int GAMES_PER_ROUND = 5;
+	private final int GAMES_PER_ROUND = 2;
 
 	/**
 	 * Generates the action that must be executed in this time step based on
@@ -126,7 +126,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		if (ship.getId() == asteroidCollectorID && propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
 //			if (ship.getCurrentAction() instanceof FasterMoveToObjectAction &&
 //					((FasterMoveToObjectAction)ship.getCurrentAction()).goalObject instanceof Asteroid) {
-				return true;			
+				return false;			
 //			}
 		}
 		

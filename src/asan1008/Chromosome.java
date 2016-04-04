@@ -16,9 +16,6 @@ public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome
 
 	public Individual agent;
 	
-	// Constants
-	//public final double MUTATION_RATE = 0.01;
-	
 	public Chromosome() {
 		// Empty constructor
 		agent = new Individual();
@@ -39,12 +36,11 @@ public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome
 			if(field.getName().equals("READY") || field.getName().equals("FITNESS")){
 				continue;
 			}
-			int mutationConstant = (int) (Math.random() * 6);
+			int mutationConstant = (int) (Math.random() * 20);
 			switch (mutationConstant) {
 			case 1:
 				try {
-					double MUTATION_RATE = Math.random() * 0.1;
-					field.set(chromosome.agent, ((double)field.get(agent)) * (1 + MUTATION_RATE));
+					field.set(chromosome.agent, ((double)field.get(agent)) * (1.15));
 				} catch (IllegalArgumentException | IllegalAccessException e) {
 					e.printStackTrace();
 					NoSurvivorsTeamClient.log("Failed to mutate");
@@ -54,8 +50,7 @@ public class Chromosome implements Comparator<Chromosome>, Comparable<Chromosome
 				
 			case 2:
 				try {
-					double MUTATION_RATE = Math.random() * 0.1;
-					field.set(chromosome.agent, ((double)field.get(agent)) * (1 - MUTATION_RATE));
+					field.set(chromosome.agent, ((double)field.get(agent)) * (0.85));
 				} catch (IllegalArgumentException | IllegalAccessException e) {
 					e.printStackTrace();
 					NoSurvivorsTeamClient.log("Failed to mutate");

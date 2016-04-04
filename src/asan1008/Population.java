@@ -18,10 +18,10 @@ import spacesettlers.simulator.Toroidal2DPhysics;
 public class Population {
 	
 	public static final int SIZE = 4;
-	private final int GAMES_PER_ROUND = 5;
+	private final int GAMES_PER_ROUND = 2;
 	public List<Chromosome> chromosomes;
 	private ArrayList<Chromosome> crossoverParents;
-	private final double TOURNAMENT_SELECTION_PROBABILITY = 0.75;
+	//private final double TOURNAMENT_SELECTION_PROBABILITY = 0.75;
 	
 	public Population() {
 		this.chromosomes = new ArrayList<Chromosome>(SIZE);
