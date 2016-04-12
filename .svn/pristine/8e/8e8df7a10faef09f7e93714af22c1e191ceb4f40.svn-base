@@ -23,20 +23,20 @@ import spacesettlers.objects.powerups.SpaceSettlersPowerupEnum;
 import spacesettlers.objects.resources.ResourcePile;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
-import sun.util.logging.resources.logging;
 
 /**
- * Modification of the aggressive heuristic asteroid collector to a team that only has one ship.  It 
- * tries to collect resources but it also tries to shoot other ships if they are nearby.
+ * Collects nearby asteroids and brings them to the base, picks up beacons as needed for energy.
+ * 
+ * If there is more than one ship, only one ship is dedicated to picking up asteroids and
+ * the other is dedicated to using weapons
  * 
  * @author amy
  */
-public class AggressiveHeuristicAsteroidCollectorSingletonTeamClient extends TeamClient {
+public class AggressiveHeuristicAsteroidCollectorTeamClient extends TeamClient {
 	HashMap <UUID, Ship> asteroidToShipMap;
 	HashMap <UUID, Boolean> aimingForBase;
 	UUID asteroidCollectorID;
 	double weaponsProbability = 1;
-	boolean shouldShoot = false;
 
 	/**
 	 * Assigns ships to asteroids and beacons, as described above
@@ -55,7 +55,15 @@ public class AggressiveHeuristicAsteroidCollectorSingletonTeamClient extends Tea
 					asteroidCollectorID = ship.getId();
 				}
 				
-				AbstractAction action = getAggressiveAsteroidCollectorAction(space, ship);
+				AbstractAction action;
+				if (ship.getId().equals(asteroidCollectorID)) {
+					// get the asteroids
+					action = getAsteroidCollectorAction(space, ship);
+				} else {
+					// this ship will try to shoot other ships so its movements take it towards the nearest other ship not on our team
+					action = getWeaponShipAction(space, ship);
+				}
+				
 				actions.put(ship.getId(), action);
 				
 			} else {
@@ -67,12 +75,12 @@ public class AggressiveHeuristicAsteroidCollectorSingletonTeamClient extends Tea
 	}
 	
 	/**
-	 * Gets the action for the asteroid collecting ship (while being aggressive towards the other ships)
+	 * Gets the action for the asteroid collecting ship
 	 * @param space
 	 * @param ship
 	 * @return
 	 */
-	private AbstractAction getAggressiveAsteroidCollectorAction(Toroidal2DPhysics space,
+	private AbstractAction getAsteroidCollectorAction(Toroidal2DPhysics space,
 			Ship ship) {
 		AbstractAction current = ship.getCurrentAction();
 		Position currentPosition = ship.getPosition();
@@ -88,7 +96,6 @@ public class AggressiveHeuristicAsteroidCollectorSingletonTeamClient extends Tea
 				newAction = new MoveToObjectAction(space, currentPosition, beacon);
 			}
 			aimingForBase.put(ship.getId(), false);
-			shouldShoot = false;
 			return newAction;
 		}
 
@@ -97,7 +104,6 @@ public class AggressiveHeuristicAsteroidCollectorSingletonTeamClient extends Tea
 			Base base = findNearestBase(space, ship);
 			AbstractAction newAction = new MoveToObjectAction(space, currentPosition, base);
 			aimingForBase.put(ship.getId(), true);
-			shouldShoot = false;
 			return newAction;
 		}
 
@@ -105,57 +111,96 @@ public class AggressiveHeuristicAsteroidCollectorSingletonTeamClient extends Tea
 		if (ship.getResources().getTotal() == 0 && ship.getEnergy() > 2000 && aimingForBase.containsKey(ship.getId()) && aimingForBase.get(ship.getId())) {
 			current = null;
 			aimingForBase.put(ship.getId(), false);
-			shouldShoot = false;
 		}
 
-		// otherwise either for an asteroid or an enemy ship (depending on who is closer and what we need)
+		// otherwise aim for the asteroid
 		if (current == null || current.isMovementFinished(space)) {
 			aimingForBase.put(ship.getId(), false);
-
-			// see if there is an enemy ship nearby
-			Ship enemy = pickNearestEnemyShip(space, ship);
-			
-			// find the highest valued nearby asteroid
 			Asteroid asteroid = pickHighestValueFreeAsteroid(space, ship);
 
 			AbstractAction newAction = null;
 
-			// if there is no enemy nearby, go for an asteroid
-			if (enemy == null) {
-				if (asteroid != null) {
-					newAction = new MoveToObjectAction(space, currentPosition, asteroid);
-					shouldShoot = false;
-					return newAction;
-				} else {
-					// no enemy and no asteroid, just skip this turn (shouldn't happen often)
-					shouldShoot = true;
+			if (asteroid == null) {
+				// there is no asteroid available so collect a beacon
+				Beacon beacon = pickNearestBeacon(space, ship);
+				// if there is no beacon, then just skip a turn
+				if (beacon == null) {
 					newAction = new DoNothingAction();
-					return newAction;
-				}
-			}
-			
-			// now decide which one to aim for
-			if (asteroid != null) {
-				double enemyDistance = space.findShortestDistance(ship.getPosition(), enemy.getPosition());
-				double asteroidDistance = space.findShortestDistance(ship.getPosition(), asteroid.getPosition());
-				
-				// we are aggressive, so aim for enemies if they are nearby
-				if (enemyDistance < asteroidDistance) {
-					shouldShoot = true;
-					newAction = new MoveToObjectAction(space, currentPosition, enemy);
 				} else {
-					shouldShoot = false;
-					newAction = new MoveToObjectAction(space, currentPosition, asteroid);
+					newAction = new MoveToObjectAction(space, currentPosition, beacon);
 				}
-				return newAction;
+			} else {
+				asteroidToShipMap.put(asteroid.getId(), ship);
+				newAction = new MoveToObjectAction(space, currentPosition, asteroid);
+			}
+			return newAction;
+		} else {
+			return ship.getCurrentAction();
+		}
+	}
+
+	/**
+	 * Gets the action for the weapons based ship
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
+	private AbstractAction getWeaponShipAction(Toroidal2DPhysics space,
+			Ship ship) {
+		AbstractAction current = ship.getCurrentAction();
+		Position currentPosition = ship.getPosition();
+
+		// aim for a beacon if there isn't enough energy
+		if (ship.getEnergy() < 2000) {
+			Beacon beacon = pickNearestBeacon(space, ship);
+			AbstractAction newAction = null;
+			// if there is no beacon, then just skip a turn
+			if (beacon == null) {
+				newAction = new DoNothingAction();
+			} else {
+				newAction = new MoveToObjectAction(space, currentPosition, beacon);
+			}
+			aimingForBase.put(ship.getId(), false);
+			return newAction;
+		}
+
+		// if the ship has enough resourcesAvailable, take it back to base
+		if (ship.getResources().getTotal() > 500) {
+			Base base = findNearestBase(space, ship);
+			AbstractAction newAction = new MoveToObjectAction(space, currentPosition, base);
+			aimingForBase.put(ship.getId(), true);
+			return newAction;
+		}
+
+		// did we bounce off the base?
+		if (ship.getResources().getTotal() == 0 && ship.getEnergy() > 2000 && aimingForBase.containsKey(ship.getId()) && aimingForBase.get(ship.getId())) {
+			current = null;
+			aimingForBase.put(ship.getId(), false);
+		}
+
+		// otherwise aim for the nearest enemy ship
+		if (current == null || current.isMovementFinished(space)) {
+			aimingForBase.put(ship.getId(), false);
+			Ship enemy = pickNearestEnemyShip(space, ship);
+
+			AbstractAction newAction = null;
+
+			if (enemy == null) {
+				// there is no enemy available so collect a beacon
+				Beacon beacon = pickNearestBeacon(space, ship);
+				// if there is no beacon, then just skip a turn
+				if (beacon == null) {
+					newAction = new DoNothingAction();
+				} else {
+					newAction = new MoveToObjectAction(space, currentPosition, beacon);
+				}
 			} else {
 				newAction = new MoveToObjectAction(space, currentPosition, enemy);
 			}
 			return newAction;
+		} else {
+			return ship.getCurrentAction();
 		}
-
-		// return the current if new goals haven't formed
-		return ship.getCurrentAction();
 	}
 
 
@@ -362,25 +407,12 @@ public class AggressiveHeuristicAsteroidCollectorSingletonTeamClient extends Tea
 
 		}
 
-		// see if you can buy EMPs
-		if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_EMP_LAUNCHER, resourcesAvailable)) {
-			for (AbstractActionableObject actionableObject : actionableObjects) {
-				if (actionableObject instanceof Ship) {
-					Ship ship = (Ship) actionableObject;
-					
-					if (!ship.getId().equals(asteroidCollectorID) && ship.isValidPowerup(PurchaseTypes.POWERUP_EMP_LAUNCHER.getPowerupMap())) {
-						purchases.put(ship.getId(), PurchaseTypes.POWERUP_EMP_LAUNCHER);
-					}
-				}
-			}		
-		} 
-		
+
 		return purchases;
 	}
 
 	/**
-	 * The aggressive asteroid collector shoots if there is an enemy nearby! 
-	 * 
+	 * The asteroid collector doesn't use power ups but the weapons one does (at random)
 	 * @param space
 	 * @param actionableObjects
 	 * @return
@@ -393,7 +425,7 @@ public class AggressiveHeuristicAsteroidCollectorSingletonTeamClient extends Tea
 		Random random = new Random();
 		for (AbstractActionableObject actionableObject : actionableObjects){
 			SpaceSettlersPowerupEnum powerup = SpaceSettlersPowerupEnum.values()[random.nextInt(SpaceSettlersPowerupEnum.values().length)];
-			if (actionableObject.isValidPowerup(powerup) && random.nextDouble() < weaponsProbability && shouldShoot){
+			if (!actionableObject.getId().equals(asteroidCollectorID) && actionableObject.isValidPowerup(powerup) && random.nextDouble() < weaponsProbability){
 				powerUps.put(actionableObject.getId(), powerup);
 			}
 		}

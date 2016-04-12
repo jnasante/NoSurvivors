@@ -386,7 +386,7 @@ public class AggressiveHeuristicAsteroidCollectorTeamClient extends TeamClient {
 				if (actionableObject instanceof Ship) {
 					Ship ship = (Ship) actionableObject;
 					
-					if (!ship.getId().equals(asteroidCollectorID) && ship.isValidPowerup(PurchaseTypes.POWERUP_EMP_LAUNCHER.getPowerupMap())) {
+					if (!ship.getId().equals(asteroidCollectorID) && !ship.isValidPowerup(PurchaseTypes.POWERUP_EMP_LAUNCHER.getPowerupMap())) {
 						purchases.put(ship.getId(), PurchaseTypes.POWERUP_EMP_LAUNCHER);
 					}
 				}

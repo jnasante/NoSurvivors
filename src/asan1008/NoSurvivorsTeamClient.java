@@ -281,6 +281,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		// if we do not already have a current target enemy, decide on a new enemy or asteroid
 		if (ship.getCurrentAction() == null || ship.getCurrentAction().isMovementFinished(space)) {
 
+			// TODO: We check if no nearest asteroid, but don't have a case for if there is. 
+			// If enemy is null but asteroid isn't, we don't handle that!
+			
 			// If nothing exists, do nothing
 			if (relationalKnowledge.getNearestAsteroid(ship) == null && relationalKnowledge.getNearestEnemy(ship) == null) {
 				shouldShoot = false;
