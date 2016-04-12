@@ -564,7 +564,7 @@ public class Toroidal2DPhysics {
 					//Asteroid newAsteroid = new Asteroid(newPosition, true, ship.getRadius(), true, resources);
 					//this.addObject(newAsteroid);
 					
-					distributeResourcesToNearbyAsteroids(ship.getPosition(), resources);
+					//distributeResourcesToNearbyAsteroids(ship.getPosition(), resources);
 					//System.out.println("Adding a new asteroid with resources " + newAsteroid.getResources().getTotal() +
 					//		" due to death, total is " + asteroids.size());
 					//System.out.println("Ship died and " + resources.getTotal() + " has been added to an asteroid");
