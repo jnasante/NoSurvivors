@@ -17,6 +17,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
+import com.sun.javafx.image.impl.ByteIndexed.ToIntArgbAnyConverter;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
 
@@ -80,10 +81,15 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		for (AbstractObject actionable : actionableObjects) {
 			if (actionable instanceof Ship) {
 				Ship ship = (Ship) actionable;
+								
+//				if (space.getCurrentTimestep() == 19998) {
+//					log("Ship stats: " + ship.getDamageInflicted() + " - " + ship.getDamageReceived());
+//				}
 				
 				// the first time we initialize, decide which ship is the asteroid collector
 				if (asteroidCollectorID == null) {
 					asteroidCollectorID = ship.getId();
+					log("Asteroid collector id: " + asteroidCollectorID);
 				}
 				
 				// Maintain a hashmap of deaths (to handle multiple time steps of ship.isAlive == false
@@ -93,7 +99,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				
 				teamName = ship.getTeamName();
 				
-				AbstractAction action = getAggressiveAction(space, ship);
+				AbstractAction action = getNextAction(space, ship);
+				
 				if(propositionalKnowledge.shouldPlan()) {
 					//log("should plan");
 					if (currentGoalObject != null) {
@@ -126,35 +133,12 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 	}
 	
-	private boolean shouldTrackResourceDeliveries(Ship ship, int timeStep) {
-		if ((ship.getTeamName().equals("agent1") || ship.getTeamName().equals("agent2")) && ship.getId() == asteroidCollectorID && 
-				propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP) && 
-				timeStep < 5000 && shouldSaveResourceCollectionData) {
-				return true;			
-		}
-		
-		return false;
-	}
-
-	/**
-	 * Gets the action for the our aggressive ship, setting priorities in the
-	 * order: 1) Staying alive 2) Buying weapon or health upgrades 3) Targeting
-	 * enemy ships 4) Targeting mineable asteroids
-	 * 
-	 * @param space Current space instance
-	 * @param ship Our ship
-	 * 
-	 * @return
-	 */
-	private AbstractAction getAggressiveAction(Toroidal2DPhysics space, Ship ship) {
-		
+	private AbstractAction getNextAction(Toroidal2DPhysics space, Ship ship) {
 		// Update current knowledge of the environment
 		relationalKnowledge.updateRepresentation(space, ship);
 		propositionalKnowledge.updateRepresentation(relationalKnowledge, space, ship);
 
-		AbstractAction newAction = null;
-
-		// We died
+		// Reset hashmaps and actions based on ship death
 		if (!ship.isAlive()) {
 			//log("But I died");
 			if (shouldTrackResourceDeliveries(ship, space.getCurrentTimestep()) && 
@@ -180,36 +164,11 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			shipDied.put(ship.getId(), new Boolean(false));
 		}
 		
+		// Update the current map if we have reached a vertex
 		if (reachedVertex(space, ship)) {
 			currentPath.get(ship.getId()).removeLast();
 		}
 
-		// If we don't have enough fuel, locate nearest fuel source
-		if (ship.getEnergy() < agent.LOW_ENERGY && ship.isAlive()) {
-			if (relationalKnowledge.getNearestBeacon(ship) != null) {
-
-				// Going to recharge, release target enemy
-				relationalKnowledge.setCurrentTargetEnemy(null, ship);
-				shouldShoot = false;
-
-				if (propositionalKnowledge.getDistanceToBeacon() <= agent.SHORT_DISTANCE
-						|| propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.getDistanceToBase()
-						|| relationalKnowledge.getNearestBase(ship).getEnergy() < propositionalKnowledge.LOW_BASE_ENERGY) {
-					// Beacon is within short distance, or it is closer than the nearest base,
-					// or the base doesn't have enough energy to satisfy our hunger
-					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(ship), ship);
-					// log("Moving toward beacon at: " + relationalKnowledge.getNearestBeacon().getPosition().getX()
-					// + ", " + relationalKnowledge.getNearestBeacon().getPosition().getY());
-					return newAction;
-				}
-			}
-
-			// There is no beacon, or the base is closer and has enough energy
-			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
-			//log("Moving toward base");
-			return newAction;
-		}
-		
 		// Previous action was to go to base, but we don't need to do that anymore
 		if (ship.getCurrentAction() instanceof FasterMoveToObjectAction) {
 			if (((FasterMoveToObjectAction)ship.getCurrentAction()).getGoalObject() instanceof Base) {
@@ -217,107 +176,176 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			}
 		}
 
-		// if the ship has enough resourcesAvailable, take it back to base
-		if (ship.getResources().getTotal() > agent.HIGH_RESOURCES) {
-			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
-			shouldShoot = false;
-			// log("Going toward base, with loot");
-			return newAction;
-		}
-		
-		// Asteroid collecting ship
 		if (asteroidCollectorID == ship.getId() && propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
-			for (double radius = propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS; radius <= propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS; radius += 100) {
-				Asteroid asteroid = relationalKnowledge.findHighestValueAsteroidWithinRadius(space, ship, radius);
-				if (asteroid != null) {
-					if (resourceDelivery.predictSurvivalProbability(ship.getEnergy(), 
-							space.findShortestDistance(ship.getPosition(), asteroid.getPosition()), 
-							space.findShortestDistance(asteroid.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()), 
-							space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition())) > propositionalKnowledge.ASTEROID_COLLECTION_PROBABILITY_THRESHOLD) {
-						// We will probably survive the trip if we go for another asteroid.
-						shouldShoot = false;
-						newAction = fasterMoveToObjectAction(space, asteroid, ship);
-						return newAction;
-					} else {
-						// We probably won't survive going for another asteroid. Go back to base to deposit what we have and heal.
-						newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
-						shouldShoot = false;
-						// log("Going toward base, with loot");
-						return newAction;
-					}
+			// Asteroid collecting ship
+			return getRichQuickAction(space, ship);
+		} else {
+			// Attacking ship
+			return getAggressiveAction(space, ship);
+		}
+	}
+	
+	private AbstractAction getRichQuickAction(Toroidal2DPhysics space, Ship ship) {
+		AbstractAction newAction = null;
+
+		// if the ship is holding enough resources, take it back to base
+		if (ship.getResources().getTotal() > agent.HIGH_RESOURCES) {
+			newAction = goHome(space, ship);
+			if (newAction != null) return newAction;
+		}
+		
+		// If we don't have enough fuel, locate nearest fuel source
+		if (ship.getEnergy() < agent.LOW_ENERGY && ship.isAlive()) {
+			newAction = goHeal(space, ship);
+			if (newAction != null) return newAction;
+		}
+		
+		// TODO: Refactor this
+		for (double radius = propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS; radius <= propositionalKnowledge.MAXIMUM_ASTEROID_SEARCH_RADIUS; radius += 100) {
+			Asteroid asteroid = relationalKnowledge.findHighestValueAsteroidWithinRadius(space, ship, radius);
+			if (asteroid != null) {
+				if (resourceDelivery.predictSurvivalProbability(ship.getEnergy(), 
+						space.findShortestDistance(ship.getPosition(), asteroid.getPosition()), 
+						space.findShortestDistance(asteroid.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()), 
+						space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition())) > propositionalKnowledge.ASTEROID_COLLECTION_PROBABILITY_THRESHOLD) {
+					
+					// We will probably survive the trip if we go for another asteroid.
+					shouldShoot = false;
+					newAction = fasterMoveToObjectAction(space, asteroid, ship);
+					return newAction;
+				} else {
+					// We probably won't survive going for another asteroid. Go back to base to deposit what we have and heal.
+					newAction = goHome(space, ship);
+					if (newAction != null) return newAction;
 				}
 			}
 		}
-
-		// Asteroid is much more convenient than enemy at this time
-		if (propositionalKnowledge.getDistanceToAsteroid() < agent.SHORT_DISTANCE
-				&& propositionalKnowledge.getDistanceToEnemy() > agent.SHORT_DISTANCE
-				&& propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP) 
-				|| relationalKnowledge.getNearestEnemy(ship) == null) {
-			shouldShoot = false;
-			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestAsteroid(ship), ship);
-			relationalKnowledge.setCurrentTargetAsteroid(relationalKnowledge.getNearestAsteroid(ship), ship);
-			relationalKnowledge.setCurrentTargetEnemy(null, ship);
-			//log("Moving toward asteroid. Mineable? " + relationalKnowledge.getNearestAsteroid(ship).isMineable());
-			return newAction;
-		}
-
-		// We have a current target enemy, so keep aiming for that
-		if (relationalKnowledge.getCurrentTargetEnemy(ship) != null) {
-			shouldShoot = shouldShootAtEnemy(space, ship);
-			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetEnemy(ship), ship);
-			// log("Hunting target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
-			return newAction;
-		}
 		
-		// We have a current target asteroid, so keep aiming for that
-		if (relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
-			shouldShoot = false;
-			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetAsteroid(ship), ship);
-			// log("Hunting asteroid);
-			return newAction;
-		}
-
-		// if we do not already have a current target enemy, decide on a new enemy or asteroid
-		if (ship.getCurrentAction() == null || ship.getCurrentAction().isMovementFinished(space)) {
-
-			// TODO: We check if no nearest asteroid, but don't have a case for if there is. 
-			// If enemy is null but asteroid isn't, we don't handle that!
-			
-			// If nothing exists, do nothing
-			if (relationalKnowledge.getNearestAsteroid(ship) == null && relationalKnowledge.getNearestEnemy(ship) == null) {
-				shouldShoot = false;
-				
-				// If nothing to do, go to nearest beacon to heal
-				if (relationalKnowledge.getNearestBeacon(ship) != null) {
-					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(ship), ship);
-					return newAction;
-				}
-									
-				// Go to base if nothing else, to drop off resources and heal
-				if (relationalKnowledge.getNearestBase(ship) != null) {
-					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
-					return newAction;
-				}
-				
-				newAction = new DoNothingAction();
-				
-				//log("Doing nothing");
-				return newAction;
-			}
-
-			// Go for the enemy!
-			shouldShoot = shouldShootAtEnemy(space, ship);
-			newAction = fasterMoveToObjectAction(space, relationalKnowledge.getNearestEnemy(ship), ship);
-			relationalKnowledge.setCurrentTargetEnemy(relationalKnowledge.getNearestEnemy(ship), ship);
-			//log("Moving toward new enemy, attempting to annihilate new target: " + relationalKnowledge.getCurrentTargetEnemy().getTeamName());
-			return newAction;
-
-		}
+		// If can't find a nearby asteroid, just go home
+		newAction = goHome(space, ship);
+		if (newAction != null) return newAction;
 		
-		// return the current action if we cannot determine a new action
+		return new DoNothingAction();
+	}
+
+	/**
+	 * Gets the action for the our aggressive ship, setting priorities in the
+	 * order: 1) Buying weapon or health upgrades 3) Targeting enemy ships
+	 * 
+	 * @param space Current space instance
+	 * @param ship Current ship
+	 * 
+	 * @return
+	 */
+	private AbstractAction getAggressiveAction(Toroidal2DPhysics space, Ship ship) {
+		AbstractAction newAction = null;
+		
+		// if the ship is holding enough resources (for some reason), take it back to base
+		if (ship.getResources().getTotal() > agent.HIGH_RESOURCES) {
+			newAction = goHome(space, ship);
+			if (newAction != null) return newAction;
+		}
+
+		// Hunt enemy (current target or new enemy)
+		newAction = huntEnemy(space, ship);
+		if (newAction != null) return newAction;
+		
+		// Nothing exists, just go home
+		newAction = goHome(space, ship);
+		if (newAction != null) return newAction;
+
+		// If for some reason we can't go home, go mining!
+		// This is the only time an aggressive ship goes for an asteroid.
+		// TODO: perhaps this should be above going home if we are near asteroids?
+		newAction = goMiningNearby(space, ship);
+		if (newAction != null) return newAction;
+		
+		// Do nothing if we cannot determine a new action
 		ship.setCurrentAction(null);
 		return new DoNothingAction();
+	}
+	
+	private AbstractAction goMiningNearby(Toroidal2DPhysics space, Ship ship) {
+		shouldShoot = false;
+				
+		// Go after current target asteroid, if we have one
+		if (relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
+			return fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetAsteroid(ship), ship);
+		}
+		
+		// Go for new asteroid (if one exists)
+		if (relationalKnowledge.getNearestAsteroid(ship) != null) {
+			return fasterMoveToObjectAction(space, relationalKnowledge.getNearestAsteroid(ship), ship);
+		}
+
+		return null;
+	}
+	
+	private AbstractAction huntEnemy(Toroidal2DPhysics space, Ship ship) {
+		shouldShoot = shouldShootAtEnemy(space, ship);
+		
+		// Go after current target, if we have one
+		if (relationalKnowledge.getCurrentTargetEnemy(ship) != null) {
+			return fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetEnemy(ship), ship);
+		}
+		
+		// Go for new target (if one exists)
+		if (relationalKnowledge.getNearestEnemy(ship) != null) {
+			relationalKnowledge.setCurrentTargetEnemy(relationalKnowledge.getNearestEnemy(ship), ship);
+			return fasterMoveToObjectAction(space, relationalKnowledge.getNearestEnemy(ship), ship);
+		}
+		
+		return null;
+	}
+	
+	private AbstractAction goToBeacon(Toroidal2DPhysics space, Ship ship) {
+		shouldShoot = false;
+		if (relationalKnowledge.getNearestBeacon(ship) != null) {
+			return fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(ship), ship);
+		}
+		
+		return null;
+	}
+	
+	private AbstractAction goHeal(Toroidal2DPhysics space, Ship ship) {
+		// Going to recharge, release target enemy
+		releaseTargetEnemy(ship);
+
+		if (relationalKnowledge.getNearestBeacon(ship) != null) {
+			if (isBeaconMoreConvenientThanBase(ship)) {
+				return goToBeacon(space, ship);
+			}
+		}
+
+		// There is no beacon, or the base is closer and has enough energy
+		return goHome(space, ship);
+	}
+	
+	private AbstractAction goHome(Toroidal2DPhysics space, Ship ship) {
+		shouldShoot = false;
+		return fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
+	}
+	
+	private void releaseTargetEnemy(Ship ship) {
+		relationalKnowledge.setCurrentTargetEnemy(null, ship);
+	}
+	
+	private boolean shouldTrackResourceDeliveries(Ship ship, int timeStep) {
+		if ((ship.getTeamName().equals("agent1") || ship.getTeamName().equals("agent2")) && ship.getId() == asteroidCollectorID && 
+				propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP) && 
+				timeStep < 5000 && shouldSaveResourceCollectionData) {
+				return true;			
+		}
+		
+		return false;
+	}
+	
+	private boolean isBeaconMoreConvenientThanBase(Ship ship) {
+		// If beacon is within short distance, or it is closer than the nearest base,
+		// or the base doesn't have enough energy to satisfy our burning hunger
+		return propositionalKnowledge.getDistanceToBeacon() <= agent.SHORT_DISTANCE
+				|| propositionalKnowledge.getDistanceToBeacon() <= propositionalKnowledge.getDistanceToBase()
+				|| relationalKnowledge.getNearestBase(ship).getEnergy() < propositionalKnowledge.LOW_BASE_ENERGY;
 	}
 	
 	/**
@@ -329,7 +357,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 */
 	private void getAStarPathToGoal(Toroidal2DPhysics space, Ship ship, Position goalPosition) {
 		if (!pathClear) {
-			Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random(), ship.getEnergy() > propositionalKnowledge.IGNORE_ASTEROIDS_ENERGY);
+			Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random());
 			currentPath.put(ship.getId(), graph.findAStarPath(space));
 		} else {
 			if (currentPath.get(ship.getId()) != null) currentPath.get(ship.getId()).clear(); else currentPath.put(ship.getId(), new LinkedList<Vertex>());
@@ -426,9 +454,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		// If our target is an enemy ship, and we are within short distance, slow down
 		Vector2D targetVelocity;
 		
-		// If we are within short distance of enemy, slow down and attack!
+		// If we are within shooting distance of enemy, slow down and attack!
 		if ((relationalKnowledge.getCurrentTargetEnemy(ship) != null && goalObject.getId() == relationalKnowledge.getCurrentTargetEnemy(ship).getId()) && 
-				propositionalKnowledge.getDistanceToEnemy() < agent.SHORT_DISTANCE*2) {
+				propositionalKnowledge.getDistanceToEnemy() < agent.SHOOTING_DISTANCE) {
 			targetPosition = goalObject.getPosition();
 			targetVelocity = new Vector2D(0, 0);
 		} else {
@@ -460,7 +488,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			for (AbstractActionableObject actionableObject : actionableObjects) {
 				if (actionableObject instanceof Base) {
 					Base base = (Base) actionableObject;
-					//log("The people's champion is increasing the size of its army");
+					log("The people's champion is increasing the size of its army");
 					purchases.put(base.getId(), PurchaseTypes.SHIP);
 					break;
 				}
@@ -469,13 +497,12 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 		// can we upgrade weapons?
 		if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY, resourcesAvailable) && !propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
-			//log("Can afford double weapon capacity");
 			for (AbstractActionableObject actionableObject : actionableObjects) {
 				if (actionableObject instanceof Ship) {
 					Ship ship = (Ship) actionableObject;
 					if (!ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY.getPowerupMap())) {
 						purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY);
-						//log("The people's champion is upgrading weapon capacity");
+						log("The people's champion is upgrading weapon capacity");
 					}
 				}
 			}
@@ -517,7 +544,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		    writer.flush();
 		    writer.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -585,7 +611,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			// the error will happen the first time you run
 			agent = new Individual();
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			agent = new Individual();
 		}
 		
@@ -640,7 +665,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				xstream.toXML(game, new FileOutputStream(new File("asan1008/game_stats.xml")));		
 			}
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		

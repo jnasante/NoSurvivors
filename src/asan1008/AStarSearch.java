@@ -95,7 +95,7 @@ public class AStarSearch  {
 	 * 
 	 */
 	public static Graph createGraphToGoalWithBeacons(Toroidal2DPhysics state, Ship myShip, 
-			Position goalPosition, Random random, boolean canHitMineableAsteroids) {
+			Position goalPosition, Random random) {
 		// where am I?
 		Position startPos = myShip.getPosition();
 		
@@ -137,7 +137,7 @@ public class AStarSearch  {
 
 		// don't add an asteroid if it is the goal, or if it is mineable and we want to hit them
 		for (Asteroid asteroid : state.getAsteroids()) {
-			if (asteroid.isMineable() && canHitMineableAsteroids) {
+			if (asteroid.isMineable()) {
 				continue;
 			}
 			

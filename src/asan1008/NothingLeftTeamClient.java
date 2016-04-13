@@ -255,7 +255,7 @@ public class NothingLeftTeamClient extends spacesettlers.clients.TeamClient {
 	 */
 	private void getAStarPathToGoal(Toroidal2DPhysics space, Ship ship, Position goalPosition) {
 		if (!pathClear) {
-			Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random(), ship.getEnergy() > propositionalKnowledge.IGNORE_ASTEROIDS_ENERGY);
+			Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random());
 			currentPath.put(ship.getId(), graph.findAStarPath(space));
 		} else {
 			if (currentPath.get(ship.getId()) != null) currentPath.get(ship.getId()).clear(); else currentPath.put(ship.getId(), new LinkedList<Vertex>());
