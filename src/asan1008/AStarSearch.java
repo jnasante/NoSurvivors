@@ -137,13 +137,20 @@ public class AStarSearch  {
 
 		// don't add an asteroid if it is the goal, or if it is mineable and we want to hit them
 		for (Asteroid asteroid : state.getAsteroids()) {
-			if (asteroid.isMineable()) {
+			if (asteroid.isMineable() || asteroid.getPosition().equals(goalPosition)) {
 				continue;
 			}
 			
-			if (!asteroid.getPosition().equals(goalPosition)) {
-				obstaclesForGraph.add(asteroid);
+			obstaclesForGraph.add(asteroid);
+		}
+		
+		// Avoid all ships except current ship and target enemy
+		for (Ship ship : state.getShips()) {
+			if (ship.getId() == myShip.getId() || ship.getPosition().equals(goalPosition)) {
+				continue;
 			}
+			
+			obstaclesForGraph.add(ship);
 		}
 		
 		// avoid the other team's bases

@@ -67,7 +67,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 	// Powerups
 	double weaponsProbability = 1;
-	boolean shouldShoot = false;
+	HashMap<UUID, Boolean> shouldShoot;
 	private final int GAMES_PER_ROUND = 2;
 
 	/**
@@ -95,6 +95,11 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				// Maintain a hashmap of deaths (to handle multiple time steps of ship.isAlive == false
 				if (shipDied.get(ship.getId()) == null) {
 					shipDied.put(ship.getId(), new Boolean(false));
+				}
+				
+				// Maintain hashmap for shouldShoot for each ship
+				if (shouldShoot.get(ship.getId()) == null) {
+					shouldShoot.put(ship.getId(), new Boolean(false));
 				}
 				
 				teamName = ship.getTeamName();
@@ -127,7 +132,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 		return actions;
 	}
-
+	
 	@Override
 	public void getMovementEnd(Toroidal2DPhysics space, Set<AbstractActionableObject> actionableObjects) {
 		
@@ -210,7 +215,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 						space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition())) > propositionalKnowledge.ASTEROID_COLLECTION_PROBABILITY_THRESHOLD) {
 					
 					// We will probably survive the trip if we go for another asteroid.
-					shouldShoot = false;
+					setShouldShoot(ship, false);
 					newAction = fasterMoveToObjectAction(space, asteroid, ship);
 					return newAction;
 				} else {
@@ -266,7 +271,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 	
 	private AbstractAction goMiningNearby(Toroidal2DPhysics space, Ship ship) {
-		shouldShoot = false;
+		setShouldShoot(ship, false);
 				
 		// Go after current target asteroid, if we have one
 		if (relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
@@ -282,7 +287,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 	
 	private AbstractAction huntEnemy(Toroidal2DPhysics space, Ship ship) {
-		shouldShoot = shouldShootAtEnemy(space, ship);
+		setShouldShoot(ship, shouldShootAtEnemy(space, ship));
 		
 		// Go after current target, if we have one
 		if (relationalKnowledge.getCurrentTargetEnemy(ship) != null) {
@@ -299,7 +304,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 	
 	private AbstractAction goToBeacon(Toroidal2DPhysics space, Ship ship) {
-		shouldShoot = false;
+		setShouldShoot(ship, false);
 		if (relationalKnowledge.getNearestBeacon(ship) != null) {
 			return fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(ship), ship);
 		}
@@ -322,7 +327,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 	
 	private AbstractAction goHome(Toroidal2DPhysics space, Ship ship) {
-		shouldShoot = false;
+		setShouldShoot(ship, false);
 		return fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
 	}
 	
@@ -404,6 +409,16 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		return new ArrayList<SpacewarGraphics>();
 	}
 
+	/**
+	 * Setter for shouldShoot for each ship
+	 * 
+	 * @param ship
+	 * @param shoot
+	 */
+	private void setShouldShoot(Ship ship, boolean shoot) {
+		shouldShoot.put(ship.getId(), new Boolean(shoot));
+	}
+
 	/** 
 	 * Decide whether or not to shoot (true if we are oriented toward the enemy)
 	 * 
@@ -456,7 +471,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 		// If we are within shooting distance of enemy, slow down and attack!
 		if ((relationalKnowledge.getCurrentTargetEnemy(ship) != null && goalObject.getId() == relationalKnowledge.getCurrentTargetEnemy(ship).getId()) && 
-				propositionalKnowledge.getDistanceToEnemy() < agent.SHOOTING_DISTANCE) {
+				propositionalKnowledge.getDistanceToEnemy() < agent.SHOOTING_DISTANCE-10) {
 			targetPosition = goalObject.getPosition();
 			targetVelocity = new Vector2D(0, 0);
 		} else {
@@ -562,6 +577,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		currentGoalObject = new HashMap<UUID, AbstractObject>();
 		graphByShip = new HashMap<UUID, Graph>();
 		shipDied = new HashMap<UUID, Boolean>();
+		shouldShoot = new HashMap<UUID, Boolean>();
 		resourceDelivery = new ResourceDelivery();
 		
 		XStream xstream = new XStream();
@@ -685,9 +701,13 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 		Random random = new Random();
 		for (AbstractActionableObject actionableObject : actionableObjects) {
+			if (!(actionableObject instanceof Ship)) {
+				continue;
+			}
+			
 			SpaceSettlersPowerupEnum powerup = SpaceSettlersPowerupEnum.values()[random
 					.nextInt(SpaceSettlersPowerupEnum.values().length)];
-			if (actionableObject.isValidPowerup(powerup) && random.nextDouble() < weaponsProbability && shouldShoot) {
+			if (actionableObject.isValidPowerup(powerup) && random.nextDouble() < weaponsProbability && shouldShoot.get(actionableObject.getId()).booleanValue()) {
 				powerUps.put(actionableObject.getId(), powerup);
 			}
 		}
