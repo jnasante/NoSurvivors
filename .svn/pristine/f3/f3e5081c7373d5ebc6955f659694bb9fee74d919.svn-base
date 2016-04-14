@@ -46,10 +46,7 @@
 		<HighLevelTeamConfig>
 			<teamName>DoNothingTeam</teamName>
 			<configFile>donothing-clientinit.xml</configFile>
-		</HighLevelTeamConfig>
-		<HighLevelTeamConfig>
-			<teamName>NoSurvivorsTeamClient</teamName>
-			<configFile>spacesettlersinit.xml</configFile></HighLevelTeamConfig>
+		</HighLevelTeamConfig>		
 	</teams>
 
 	<!-- Each team needs a base.  Optionally, you can initialize the location of the base -->
@@ -66,8 +63,6 @@
 		<BaseConfig>
 			<teamName>DoNothingTeam</teamName>
 		</BaseConfig>
-		<BaseConfig>
-			<teamName>NoSurvivorsTeamClient</teamName></BaseConfig>
 	</bases>
 	
 	<!-- Specify the options for creating asteroids.  Their locations are random. -->
