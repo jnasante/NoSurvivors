@@ -183,14 +183,14 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 		if (asteroidCollectorID == ship.getId() && propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
 			// Asteroid collecting ship
-			return getRichQuickAction(space, ship);
+			return getThatPaperAction(space, ship);
 		} else {
 			// Attacking ship
-			return getAggressiveAction(space, ship);
+			return bangBangAction(space, ship);
 		}
 	}
 	
-	private AbstractAction getRichQuickAction(Toroidal2DPhysics space, Ship ship) {
+	private AbstractAction getThatPaperAction(Toroidal2DPhysics space, Ship ship) {
 		AbstractAction newAction = null;
 
 		// if the ship is holding enough resources, take it back to base
@@ -242,7 +242,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * 
 	 * @return
 	 */
-	private AbstractAction getAggressiveAction(Toroidal2DPhysics space, Ship ship) {
+	private AbstractAction bangBangAction(Toroidal2DPhysics space, Ship ship) {
 		AbstractAction newAction = null;
 		
 		// if the ship is holding enough resources (for some reason), take it back to base
