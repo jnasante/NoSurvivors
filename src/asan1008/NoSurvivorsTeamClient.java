@@ -503,8 +503,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			for (AbstractActionableObject actionableObject : actionableObjects) {
 				if (actionableObject instanceof Base) {
 					Base base = (Base) actionableObject;
-					log("The people's champion is increasing the size of its army");
 					purchases.put(base.getId(), PurchaseTypes.SHIP);
+					//log("The people's champion is increasing the size of its army");
 					break;
 				}
 			}
@@ -517,7 +517,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					Ship ship = (Ship) actionableObject;
 					if (!ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY.getPowerupMap())) {
 						purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY);
-						log("The people's champion is upgrading weapon capacity");
+						//log("The people's champion is upgrading weapon capacity");
 					}
 				}
 			}

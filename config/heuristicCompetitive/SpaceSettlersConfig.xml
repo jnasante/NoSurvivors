@@ -49,7 +49,16 @@
 		</HighLevelTeamConfig>
 		<HighLevelTeamConfig>
 			<teamName>NoSurvivorsTeamClient</teamName>
-			<configFile>spacesettlersinit.xml</configFile></HighLevelTeamConfig>
+			<configFile>spacesettlersinit.xml</configFile>
+		</HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<teamName>NoSurvivorsTeamClient</teamName>
+			<configFile>agent1init.xml</configFile>
+		</HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<teamName>NoSurvivorsTeamClient</teamName>
+			<configFile>agent2init.xml</configFile>
+		</HighLevelTeamConfig>
 	</teams>
 
 	<!-- Each team needs a base.  Optionally, you can initialize the location of the base -->

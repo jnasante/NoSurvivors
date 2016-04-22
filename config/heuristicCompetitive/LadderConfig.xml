@@ -4,7 +4,7 @@
 	<numRepeatMatches>3</numRepeatMatches>
 
 	<!-- The maximum number of variable (e.g. can change each match) teams in a game -->
-	<maximumNumberVariableTeams>1</maximumNumberVariableTeams>
+	<maximumNumberVariableTeams>3</maximumNumberVariableTeams>
 	
 	<!-- Write out the results to this file -->
 	<outputFileName>self-ladder.html</outputFileName>
@@ -16,13 +16,6 @@
 			<configFile>random-clientinit.xml</configFile>
 			<initialRegionCenterX>0</initialRegionCenterX>
 			<initialRegionCenterY>0</initialRegionCenterY>
-			<initialRegionRadius>300</initialRegionRadius>
-		</HighLevelTeamConfig>
-		<HighLevelTeamConfig>
-			<teamName>BeaconCollectorTeam</teamName>
-			<configFile>beacon-clientinit.xml</configFile>
-			<initialRegionCenterX>724</initialRegionCenterX>
-			<initialRegionCenterY>300</initialRegionCenterY>
 			<initialRegionRadius>300</initialRegionRadius>
 		</HighLevelTeamConfig>
 		<HighLevelTeamConfig>
@@ -40,6 +33,14 @@
 		<HighLevelTeamConfig>
 			<teamName>NoSurvivorsTeamClient</teamName>
 			<configFile>spacesettlersinit.xml</configFile>
+		</HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<teamName>NoSurvivorsTeamClient2</teamName>
+			<configFile>agent1init.xml</configFile>
+		</HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<teamName>NoSurvivorsTeamClient3</teamName>
+			<configFile>agent2init.xml</configFile>
 		</HighLevelTeamConfig>
 	</variableTeams>
 
