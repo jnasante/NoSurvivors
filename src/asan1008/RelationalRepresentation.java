@@ -12,7 +12,6 @@ import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
-import sun.util.logging.resources.logging;
 
 /** 
  * Relational knowledge representation of the environment
@@ -306,7 +305,8 @@ public class RelationalRepresentation {
 
 		for (Asteroid asteroid : asteroids) {
 			if (asteroid.isMineable() && asteroid.getResources().getTotal() > bestMoney && 
-					space.findShortestDistance(findNearestBase(space, ship).getPosition(), asteroid.getPosition()) < radius) {
+					space.findShortestDistance(findNearestBase(space, ship).getPosition(), asteroid.getPosition()) < radius &&
+					!currentTargetAsteroid.containsValue(asteroid)) {
 				bestMoney = asteroid.getResources().getTotal();
 				bestAsteroid = asteroid;
 			}
