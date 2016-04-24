@@ -164,19 +164,23 @@ public class RelationalRepresentation {
 				continue;
 			}
 			
-			// Target Sean+Jared (remove eventually)
-			if (!otherShip.getTeamName().toLowerCase().contains("sean") && !otherShip.getTeamName().toLowerCase().contains("jared")) {
-				continue;
-			}
-			
+			// Get ladder name
 			String ladderName = "";
 			Iterator<ImmutableTeamInfo> iterator = space.getTeamInfo().iterator();
 			while (iterator.hasNext()) {
 				ImmutableTeamInfo teamInfo = iterator.next();
-				if (teamInfo.getLadderName() == ladderName) {
+				if (teamInfo.getTeamName() == otherShip.getTeamName()) {
+					ladderName = teamInfo.getLadderName();
 					break;
 				}
 			}
+			
+			// Target Sean+Jared (remove eventually)
+			if (!ladderName.toLowerCase().contains("sean") && !ladderName.toLowerCase().contains("jared") && 
+					!ladderName.toLowerCase().contains("joseph") && !ladderName.toLowerCase().contains("aric")) {
+				continue;
+			}
+			
 			
 			double distance = space.findShortestDistance(ship.getPosition(), otherShip.getPosition());
 			if (distance < minDistance) {

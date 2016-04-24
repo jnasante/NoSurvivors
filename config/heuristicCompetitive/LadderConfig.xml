@@ -38,10 +38,6 @@
 			<teamName>NoSurvivorsTeamClient2</teamName>
 			<configFile>agent1init.xml</configFile>
 		</HighLevelTeamConfig>
-		<HighLevelTeamConfig>
-			<teamName>NoSurvivorsTeamClient3</teamName>
-			<configFile>agent2init.xml</configFile>
-		</HighLevelTeamConfig>
 	</variableTeams>
 
 </LadderConfig>
