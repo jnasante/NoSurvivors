@@ -81,7 +81,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		for (AbstractObject actionable : actionableObjects) {
 			if (actionable instanceof Ship) {
 				Ship ship = (Ship) actionable;
-								
+				
 //				if (space.getCurrentTimestep() == 19998) {
 //					log("Ship stats: " + ship.getDamageInflicted() + " - " + ship.getDamageReceived());
 //				}

@@ -1,8 +1,11 @@
 package asan1008;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
+
+import spacesettlers.clients.ImmutableTeamInfo;
 import spacesettlers.objects.Asteroid;
 import spacesettlers.objects.Base;
 import spacesettlers.objects.Beacon;
@@ -159,6 +162,20 @@ public class RelationalRepresentation {
 			// don't aim for our own team (or ourself)
 			if (otherShip.getTeamName().equals(ship.getTeamName())) {
 				continue;
+			}
+			
+			// Target Sean+Jared (remove eventually)
+			if (!otherShip.getTeamName().toLowerCase().contains("sean") && !otherShip.getTeamName().toLowerCase().contains("jared")) {
+				continue;
+			}
+			
+			String ladderName = "";
+			Iterator<ImmutableTeamInfo> iterator = space.getTeamInfo().iterator();
+			while (iterator.hasNext()) {
+				ImmutableTeamInfo teamInfo = iterator.next();
+				if (teamInfo.getLadderName() == ladderName) {
+					break;
+				}
 			}
 			
 			double distance = space.findShortestDistance(ship.getPosition(), otherShip.getPosition());
