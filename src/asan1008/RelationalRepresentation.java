@@ -12,7 +12,6 @@ import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
-import sun.util.logging.resources.logging;
 
 /** 
  * Relational knowledge representation of the environment
@@ -158,36 +157,43 @@ public class RelationalRepresentation {
 	private Ship findNearestEnemy(Toroidal2DPhysics space, Ship ship) {
 		double minDistance = Double.POSITIVE_INFINITY;
 		Ship nearestShip = null;
-		for (Ship otherShip : space.getShips()) {
-			// don't aim for our own team (or ourself)
-			if (otherShip.getTeamName().equals(ship.getTeamName())) {
-				continue;
-			}
-			
-			// Get ladder name
-			String ladderName = "";
-			Iterator<ImmutableTeamInfo> iterator = space.getTeamInfo().iterator();
-			while (iterator.hasNext()) {
-				ImmutableTeamInfo teamInfo = iterator.next();
-				if (teamInfo.getTeamName() == otherShip.getTeamName()) {
-					ladderName = teamInfo.getLadderName();
-					break;
+		boolean shouldTrySomeoneElse = false;
+		do {
+			for (Ship otherShip : space.getShips()) {
+				// don't aim for our own team (or ourself)
+				if (otherShip.getTeamName().equals(ship.getTeamName())) {
+					continue;
+				}
+				
+				// Get ladder name
+				String ladderName = "";
+				Iterator<ImmutableTeamInfo> iterator = space.getTeamInfo().iterator();
+				while (iterator.hasNext()) {
+					ImmutableTeamInfo teamInfo = iterator.next();
+					if (teamInfo.getTeamName() == otherShip.getTeamName()) {
+						ladderName = teamInfo.getLadderName();
+						break;
+					}
+				}
+				
+				// Target Sean+Jared (remove eventually)
+				if (!shouldTrySomeoneElse) {
+					if (!ladderName.toLowerCase().contains("sean") && !ladderName.toLowerCase().contains("jared")) {
+						continue;
+					}
+				}
+				
+				double distance = space.findShortestDistance(ship.getPosition(), otherShip.getPosition());
+				if (distance < minDistance) {
+					minDistance = distance;
+					nearestShip = otherShip;
 				}
 			}
 			
-			// Target Sean+Jared (remove eventually)
-			if (!ladderName.toLowerCase().contains("sean") && !ladderName.toLowerCase().contains("jared") && 
-					!ladderName.toLowerCase().contains("joseph") && !ladderName.toLowerCase().contains("aric")) {
-				continue;
-			}
+			if (nearestShip == null) shouldTrySomeoneElse = true;
+			else shouldTrySomeoneElse = false;
 			
-			
-			double distance = space.findShortestDistance(ship.getPosition(), otherShip.getPosition());
-			if (distance < minDistance) {
-				minDistance = distance;
-				nearestShip = otherShip;
-			}
-		}
+		} while(shouldTrySomeoneElse);
 		
 		return nearestShip;
 	}
@@ -310,7 +316,8 @@ public class RelationalRepresentation {
 
 		for (Asteroid asteroid : asteroids) {
 			if (asteroid.isMineable() && asteroid.getResources().getTotal() > bestMoney && 
-					space.findShortestDistance(findNearestBase(space, ship).getPosition(), asteroid.getPosition()) < radius) {
+					space.findShortestDistance(findNearestBase(space, ship).getPosition(), asteroid.getPosition()) < radius &&
+					!currentTargetAsteroid.containsValue(asteroid)) {
 				bestMoney = asteroid.getResources().getTotal();
 				bestAsteroid = asteroid;
 			}

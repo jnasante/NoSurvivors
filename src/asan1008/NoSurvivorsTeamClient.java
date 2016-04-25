@@ -16,11 +16,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-
-import com.sun.javafx.image.impl.ByteIndexed.ToIntArgbAnyConverter;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
-
 import spacesettlers.actions.AbstractAction;
 import spacesettlers.actions.DoNothingAction;
 import spacesettlers.actions.PurchaseCosts;
@@ -56,7 +53,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	ResourceDelivery resourceDelivery;
 	Individual agent;
 	Chromosome chromosome;
-	UUID asteroidCollectorID;
+	HashSet<UUID> asteroidCollectorIDs;
 	String teamName;
 	boolean pathClear = false;
 	boolean shouldUseAStar = true;
@@ -87,9 +84,11 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 //				}
 				
 				// the first time we initialize, decide which ship is the asteroid collector
-				if (asteroidCollectorID == null) {
-					asteroidCollectorID = ship.getId();
-					log("Asteroid collector id: " + asteroidCollectorID);
+				if (asteroidCollectorIDs.size() < 2 ) {
+					if( !asteroidCollectorIDs.contains(ship.getId())){
+						asteroidCollectorIDs.add(ship.getId());
+						log("Asteroid collector id: " + ship.getId());
+					}
 				}
 				
 				// Maintain a hashmap of deaths (to handle multiple time steps of ship.isAlive == false
@@ -181,7 +180,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			}
 		}
 
-		if (asteroidCollectorID == ship.getId() && propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
+		if (asteroidCollectorIDs.contains(ship.getId()) && propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
 			// Asteroid collecting ship
 			return getThatPaperAction(space, ship);
 		} else {
@@ -204,24 +203,30 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			newAction = goHeal(space, ship);
 			if (newAction != null) return newAction;
 		}
-		
+
 		// TODO: Refactor this
 		for (double radius = propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS; radius <= propositionalKnowledge.MAXIMUM_ASTEROID_SEARCH_RADIUS; radius += 100) {
 			Asteroid asteroid = relationalKnowledge.findHighestValueAsteroidWithinRadius(space, ship, radius);
-			if (asteroid != null) {
-				if (resourceDelivery.predictSurvivalProbability(ship.getEnergy(), 
-						space.findShortestDistance(ship.getPosition(), asteroid.getPosition()), 
-						space.findShortestDistance(asteroid.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()), 
+			if (asteroid != null && relationalKnowledge.getCurrentTargetAsteroid(ship) == null) {
+				if (resourceDelivery.predictSurvivalProbability(ship.getEnergy(),
+						space.findShortestDistance(ship.getPosition(), asteroid.getPosition()),
+						space.findShortestDistance(asteroid.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()),
 						space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition())) > propositionalKnowledge.ASTEROID_COLLECTION_PROBABILITY_THRESHOLD) {
-					
+
 					// We will probably survive the trip if we go for another asteroid.
 					setShouldShoot(ship, false);
+					relationalKnowledge.setCurrentTargetAsteroid(asteroid, ship);
 					newAction = fasterMoveToObjectAction(space, asteroid, ship);
 					return newAction;
 				} else {
 					// We probably won't survive going for another asteroid. Go back to base to deposit what we have and heal.
 					newAction = goHome(space, ship);
 					if (newAction != null) return newAction;
+				}
+			} else {
+				if(relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
+					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetAsteroid(ship), ship);
+					return newAction;
 				}
 			}
 		}
@@ -336,7 +341,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 	
 	private boolean shouldTrackResourceDeliveries(Ship ship, int timeStep) {
-		if ((ship.getTeamName().equals("agent1") || ship.getTeamName().equals("agent2")) && ship.getId() == asteroidCollectorID && 
+		if ((ship.getTeamName().equals("agent1") || ship.getTeamName().equals("agent2")) && asteroidCollectorIDs.contains(ship.getId()) && 
 				propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP) && 
 				timeStep < 5000 && shouldSaveResourceCollectionData) {
 				return true;			
@@ -579,6 +584,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		shipDied = new HashMap<UUID, Boolean>();
 		shouldShoot = new HashMap<UUID, Boolean>();
 		resourceDelivery = new ResourceDelivery();
+		asteroidCollectorIDs = new HashSet<>();
 		
 		XStream xstream = new XStream();
 		xstream.alias("Individual", Individual.class);
