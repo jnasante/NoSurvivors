@@ -87,7 +87,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				if (asteroidCollectorIDs.size() < 2 ) {
 					if( !asteroidCollectorIDs.contains(ship.getId())){
 						asteroidCollectorIDs.add(ship.getId());
-						log("Asteroid collector id: " + ship.getId());
+						if (ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) log("Asteroid collector id: " + ship.getId());
 					}
 				}
 				
@@ -251,7 +251,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		AbstractAction newAction = null;
 		
 		// if the ship is holding enough resources (for some reason), take it back to base
-		if (ship.getResources().getTotal() > agent.HIGH_RESOURCES) {
+		if (ship.getResources().getTotal() > 3*agent.HIGH_RESOURCES) {
 			newAction = goHome(space, ship);
 			if (newAction != null) return newAction;
 		}

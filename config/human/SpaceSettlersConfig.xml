@@ -22,7 +22,7 @@
 	
 	<!-- Specify the maximum number of ships in a team -->
 	<maximumShipsPerTeam>10</maximumShipsPerTeam>
-	<maximumInitialShipsPerTeam>1</maximumInitialShipsPerTeam>
+	<maximumInitialShipsPerTeam>2</maximumInitialShipsPerTeam>
 	
 	<!-- Specify any controllable clients in the simulator (this can include heuristics).  
 	     Note, all clients are teams since eventually all clients can make new ships. -->
@@ -49,11 +49,13 @@
 		</HighLevelTeamConfig>
 		<HighLevelTeamConfig>
 			<teamName>NoSurvivorsTeamClient</teamName>
-			<configFile>spacesettlersinit.xml</configFile></HighLevelTeamConfig>
-		<HighLevelTeamConfig>
+			<configFile>spacesettlersinit.xml</configFile>
+		</HighLevelTeamConfig>
+<!-- 		<HighLevelTeamConfig>
 			<teamName>ExampleAStarClient</teamName>
-			<configFile>example-astar-clientinit.xml</configFile></HighLevelTeamConfig>
-	</teams>
+			<configFile>example-astar-clientinit.xml</configFile>
+		</HighLevelTeamConfig>
+ -->	</teams>
 
 	<!-- Each team needs a base.  Optionally, you can initialize the location of the base -->
 	<bases>
@@ -70,9 +72,11 @@
 			<teamName>HeuristicMinerTeam</teamName>
 		</BaseConfig>
 		<BaseConfig>
-			<teamName>NoSurvivorsTeamClient</teamName></BaseConfig>
-		<BaseConfig>
-			<teamName>ExampleAStarClient</teamName></BaseConfig>
+			<teamName>NoSurvivorsTeamClient</teamName>
+		</BaseConfig>
+		<!-- <BaseConfig>
+			<teamName>ExampleAStarClient</teamName>
+		</BaseConfig> -->
 	</bases>
 	
 	<!-- Specify the options for creating asteroids.  Their locations are random. -->

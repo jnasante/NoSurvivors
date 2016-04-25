@@ -467,9 +467,9 @@ public class Team {
 			// check team ships for how much damageInflicted they have received
 			damagedReceived += ship.getDamageReceived();
 			
-			if (ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient") && (space.getCurrentTimestep() == 19998 || space.getCurrentTimestep() == 10000))
+			if (ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient") && (space.getCurrentTimestep() == 19998 || space.getCurrentTimestep() == 6000))
 			System.out.println("Ship stats for ship: " + ship.getId() + 
-					"\n\tKills: " + ship.getKillsInflicted() + "\tInflicted: " + ship.getDamageInflicted() + "\tReceived: " + ship.getDamageReceived());
+					"\n\tKills: " + ship.getKillsInflicted() + "\tDeaths: " + ship.getKillsReceived() + "\tInflicted: " + ship.getDamageInflicted() + "\tReceived: " + ship.getDamageReceived());
 		}
 		
 		// check the bases for how much damageInflicted they have received

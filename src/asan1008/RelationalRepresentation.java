@@ -10,6 +10,7 @@ import spacesettlers.objects.Asteroid;
 import spacesettlers.objects.Base;
 import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
+import spacesettlers.objects.resources.ResourceTypes;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 
@@ -176,9 +177,11 @@ public class RelationalRepresentation {
 					}
 				}
 				
-				// Target Sean+Jared (remove eventually)
+				// Target Sean+Jared or DoNothing (remove eventually)
 				if (!shouldTrySomeoneElse) {
-					if (!ladderName.toLowerCase().contains("sean") && !ladderName.toLowerCase().contains("jared")) {
+					if (!ladderName.toLowerCase().contains("sean") 
+							&& !ladderName.toLowerCase().contains("jared") 
+							&& !ladderName.toLowerCase().contains("nothing")) {
 						continue;
 					}
 				}
@@ -318,7 +321,9 @@ public class RelationalRepresentation {
 			if (asteroid.isMineable() && asteroid.getResources().getTotal() > bestMoney && 
 					space.findShortestDistance(findNearestBase(space, ship).getPosition(), asteroid.getPosition()) < radius &&
 					!currentTargetAsteroid.containsValue(asteroid)) {
-				bestMoney = asteroid.getResources().getTotal();
+				bestMoney = asteroid.getResources().getResourceQuantity(ResourceTypes.METALS) + 
+						2*asteroid.getResources().getResourceQuantity(ResourceTypes.FUEL) + 
+						asteroid.getResources().getResourceQuantity(ResourceTypes.WATER);
 				bestAsteroid = asteroid;
 			}
 		}
