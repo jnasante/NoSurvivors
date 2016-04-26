@@ -158,45 +158,18 @@ public class RelationalRepresentation {
 	private Ship findNearestEnemy(Toroidal2DPhysics space, Ship ship) {
 		double minDistance = Double.POSITIVE_INFINITY;
 		Ship nearestShip = null;
-		boolean shouldTrySomeoneElse = false;
-		do {
-			for (Ship otherShip : space.getShips()) {
-				// don't aim for our own team (or ourself)
-				if (otherShip.getTeamName().equals(ship.getTeamName())) {
-					continue;
-				}
-				
-				// Get ladder name
-				String ladderName = "";
-				Iterator<ImmutableTeamInfo> iterator = space.getTeamInfo().iterator();
-				while (iterator.hasNext()) {
-					ImmutableTeamInfo teamInfo = iterator.next();
-					if (teamInfo.getTeamName() == otherShip.getTeamName()) {
-						ladderName = teamInfo.getLadderName();
-						break;
-					}
-				}
-				
-				// Target Sean+Jared or DoNothing (remove eventually)
-				if (!shouldTrySomeoneElse) {
-					if (!ladderName.toLowerCase().contains("sean") 
-							&& !ladderName.toLowerCase().contains("jared") 
-							&& !ladderName.toLowerCase().contains("nothing")) {
-						continue;
-					}
-				}
-				
-				double distance = space.findShortestDistance(ship.getPosition(), otherShip.getPosition());
-				if (distance < minDistance) {
-					minDistance = distance;
-					nearestShip = otherShip;
-				}
+		for (Ship otherShip : space.getShips()) {
+			// don't aim for our own team (or ourself)
+			if (otherShip.getTeamName().equals(ship.getTeamName())) {
+				continue;
 			}
 			
-			if (nearestShip == null) shouldTrySomeoneElse = true;
-			else shouldTrySomeoneElse = false;
-			
-		} while(shouldTrySomeoneElse);
+			double distance = space.findShortestDistance(ship.getPosition(), otherShip.getPosition());
+			if (distance < minDistance) {
+				minDistance = distance;
+				nearestShip = otherShip;
+			}
+		}
 		
 		return nearestShip;
 	}
