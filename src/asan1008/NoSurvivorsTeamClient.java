@@ -48,6 +48,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	HashMap<UUID, ArrayList<SpacewarGraphics>> graphicsToAdd;
 	HashMap<UUID, LinkedList<Vertex>> currentPath;
 	HashMap<UUID, AbstractObject> currentGoalObject;
+	HashMap<UUID, Integer> mostWantedEnemy;
 	HashMap <UUID, Graph> graphByShip;
 	HashMap<UUID, Boolean> shipDied;
 	ResourceDelivery resourceDelivery;
@@ -395,7 +396,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	public ArrayList<SpacewarGraphics> drawPath(LinkedList<Vertex> path, Toroidal2DPhysics space, Ship ship) {
 		Iterator<Vertex> iterator = path.iterator();
 		Position prev = iterator.next().getPosition();
-				
+		
 		if (graphicsToAdd.get(ship.getId()) != null) {
 			graphicsToAdd.get(ship.getId()).clear();
 			graphicsToAdd.get(ship.getId()).add(new StarGraphics(3, Color.CYAN, path.get(0).getPosition()));
@@ -432,7 +433,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {
-		return relationalKnowledge.enemyOnPath(space, ship) && propositionalKnowledge.getDistanceToEnemy() <= agent.SHOOTING_DISTANCE;
+		return relationalKnowledge.enemyOnPath(space, ship, 
+				relationalKnowledge.getCurrentTargetEnemy(ship) != null ? relationalKnowledge.getCurrentTargetEnemy(ship).getPosition() : null ) 
+					&& propositionalKnowledge.getDistanceToEnemy() <= agent.SHOOTING_DISTANCE;
 	}
 
 	/**
@@ -450,28 +453,29 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 */
 	private AbstractAction fasterMoveToObjectAction(Toroidal2DPhysics space, AbstractObject goalObject, Ship ship) {
 		currentGoalObject.put(ship.getId(), goalObject);
-				
-		// The magnitude of our velocity vector. If we are dangerously low on energy, slow down
-		double VELOCITY_MAGNITUDE = agent.SPEED_FAST;
 		
-		if (ship.getEnergy() < agent.LOW_ENERGY) {
-			VELOCITY_MAGNITUDE = agent.SPEED_SLOW;
-		} else if (!pathClear) {
-			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_MEDIUM;
-		}
-				
 		// Next node we are targeting on the path
 		Position targetPosition = currentPath.get(ship.getId()) != null && !currentPath.get(ship.getId()).isEmpty() && 
 				space.findShortestDistance(propositionalKnowledge.getCurrentPosition(), goalObject.getPosition()) > agent.SHORT_DISTANCE ? 
-			currentPath.get(ship.getId()).getLast().getPosition() : goalObject.getPosition(); 
+			currentPath.get(ship.getId()).getLast().getPosition() : goalObject.getPosition();
 		
 		// Distance to target position
 		Vector2D distance = space.findShortestDistanceVector(propositionalKnowledge.getCurrentPosition(), targetPosition);
 		
-		// Scale by which to multiply our distance vectors to get the desired velocity magnitude
-		double velocityScale = VELOCITY_MAGNITUDE / Math.sqrt(Math.pow(distance.getXValue(), 2) + Math.pow(distance.getYValue(), 2));
+		// The magnitude of our velocity vector. If we are dangerously low on energy, slow down
+		double VELOCITY_MAGNITUDE = agent.SPEED_FAST;
 		
-		// If our target is an enemy ship, and we are within short distance, slow down
+		if (ship.getEnergy() < 200) {
+			// TODO: randomly select points with clear path and shoot for that
+			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_CHEAT_DEATH;
+		} else if (ship.getEnergy() < agent.LOW_ENERGY) {
+			VELOCITY_MAGNITUDE = agent.SPEED_SLOW;
+		} else if (goalObject instanceof Base && space.findShortestDistance(ship.getPosition(), goalObject.getPosition()) < agent.SHORT_DISTANCE) {  
+			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_BASE_ARRIVAL;
+		} else if (!pathClear) {
+			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_NAVIGATION;
+		}
+				
 		Vector2D targetVelocity;
 		
 		// If we are within shooting distance of enemy, slow down and attack!
@@ -480,9 +484,12 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			targetPosition = goalObject.getPosition();
 			targetVelocity = new Vector2D(0, 0);
 		} else {
+			// Scale by which to multiply our distance vectors to get the desired velocity magnitude
+			double velocityScale = VELOCITY_MAGNITUDE / Math.sqrt(Math.pow(distance.getXValue(), 2) + Math.pow(distance.getYValue(), 2));
 			targetVelocity = new Vector2D(velocityScale*distance.getXValue(), velocityScale*distance.getYValue());
 		}
 		
+		// Asteroid coordination
 		if (goalObject instanceof Asteroid) {
 			resourceDelivery.setValues(ship.getEnergy(), 
 					space.findShortestDistance(ship.getPosition(), goalObject.getPosition()), 
@@ -492,7 +499,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 							
 		return new FasterMoveToObjectAction(space, propositionalKnowledge.getCurrentPosition(), goalObject, targetPosition, targetVelocity, relationalKnowledge.getTargetOrientationToEnemy(space, ship));
 	}
-
+	
 	@Override
 	/**
 	 * If we have the resources, upgrade weapons, energy capacity, in that order
@@ -509,22 +516,38 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				if (actionableObject instanceof Base) {
 					Base base = (Base) actionableObject;
 					purchases.put(base.getId(), PurchaseTypes.SHIP);
-					//log("The people's champion is increasing the size of its army");
+					log("The people's champion is increasing the size of its army");
 					break;
 				}
 			}
 		}
 		
-		// can we upgrade weapons?
-		if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY, resourcesAvailable) && !propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
-			for (AbstractActionableObject actionableObject : actionableObjects) {
-				if (actionableObject instanceof Ship) {
-					Ship ship = (Ship) actionableObject;
-					if (!ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY.getPowerupMap())) {
-						purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY);
-						//log("The people's champion is upgrading weapon capacity");
+		// Don't buy anything else until we're done collecting asteroids
+		if (!propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
+			// can we upgrade weapon capacity?
+			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY, resourcesAvailable)) {
+				for (AbstractActionableObject actionableObject : actionableObjects) {
+					if (actionableObject instanceof Ship) {
+						Ship ship = (Ship) actionableObject;
+						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY.getPowerupMap())) {
+							purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY);
+							log("The people's champion is upgrading weapon capacity");
+						}
 					}
 				}
+			}
+			
+			// can we buy EMP?
+			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_EMP_LAUNCHER, resourcesAvailable)) {
+				for (AbstractActionableObject actionableObject : actionableObjects) {
+					if (actionableObject instanceof Ship) {
+						Ship ship = (Ship) actionableObject;
+						
+						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_EMP_LAUNCHER.getPowerupMap())) {
+							purchases.put(ship.getId(), PurchaseTypes.POWERUP_EMP_LAUNCHER);
+						}
+					}
+				}		
 			}
 		}
 		
@@ -580,6 +603,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		graphicsToAdd = new HashMap<UUID, ArrayList<SpacewarGraphics>>();
 		currentPath = new HashMap<UUID, LinkedList<Vertex>>();
 		currentGoalObject = new HashMap<UUID, AbstractObject>();
+		mostWantedEnemy = new HashMap<UUID, Integer>();
 		graphByShip = new HashMap<UUID, Graph>();
 		shipDied = new HashMap<UUID, Boolean>();
 		shouldShoot = new HashMap<UUID, Boolean>();

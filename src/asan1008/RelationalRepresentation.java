@@ -1,9 +1,12 @@
 package asan1008;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
+
+import javax.management.remote.TargetedNotification;
 
 import spacesettlers.clients.ImmutableTeamInfo;
 import spacesettlers.objects.Asteroid;
@@ -65,7 +68,7 @@ public class RelationalRepresentation {
 			}
 		}
 	}
-	
+		
 	/**
 	 * If current target asteroid is still alive, update to object to reflect changes in state
 	 * Otherwise, release target so we can perform another action
@@ -161,6 +164,22 @@ public class RelationalRepresentation {
 		for (Ship otherShip : space.getShips()) {
 			// don't aim for our own team (or ourself)
 			if (otherShip.getTeamName().equals(ship.getTeamName())) {
+				continue;
+			}
+			
+			// Make sure we only ever have 2 ships hunting an enemy
+			int count = 0;
+			for (Ship enemy : currentTargetEnemy.values()) {
+				if (enemy == null) {
+					continue;
+				}
+				
+				if (enemy.getId() == otherShip.getId()) {
+					count++;
+				}
+			}
+			
+			if (count >= 2) {
 				continue;
 			}
 			
@@ -311,15 +330,15 @@ public class RelationalRepresentation {
 	 * 
 	 * @return Boolean value for whether or not we should shoot
 	 */
-	public boolean enemyOnPath(Toroidal2DPhysics space, Ship ship){
+	public boolean enemyOnPath(Toroidal2DPhysics space, Ship ship, Position predictedEnemyPosition){
 		// prepare the necessary variables for the algorithm
 		double shipX = ship.getPosition().getX();
 		double shipY = ship.getPosition().getY();
 		double orientation = ship.getPosition().getOrientation();
 		if( currentTargetEnemy.get(ship.getId()) != null) {
-			double radius = currentTargetEnemy.get(ship.getId()).getRadius();
-			double enemyX = currentTargetEnemy.get(ship.getId()).getPosition().getX();
-			double enemyY = currentTargetEnemy.get(ship.getId()).getPosition().getY();
+			double radius = Ship.SHIP_RADIUS;
+			double enemyX = predictedEnemyPosition.getX();
+			double enemyY = predictedEnemyPosition.getY();
 			double x1, y1, x2, y2;
 			// check if the x and y distances are of the same sign
 			if((enemyX - shipX) * (enemyY - shipY) > 0) {

@@ -22,7 +22,9 @@ public class PropositionalRepresentation {
 	private double distanceBetweenTargetBeaconAndEnemy;
 
 	// Constants
-	public final int SPEED_MEDIUM = 40;
+	public final int SPEED_NAVIGATION = 40;
+	public final int SPEED_BASE_ARRIVAL = 5;
+	public final int SPEED_CHEAT_DEATH = 2000;
 	public final int PLANNING_FREQUENCY = 20;
 	public final int LOW_BASE_ENERGY = 1000;
 	public final double MINIMUM_ASTEROID_SEARCH_RADIUS = 200;

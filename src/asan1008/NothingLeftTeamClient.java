@@ -311,7 +311,7 @@ public class NothingLeftTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {
-		return relationalKnowledge.enemyOnPath(space, ship) && propositionalKnowledge.getDistanceToEnemy() <= SHOOTING_DISTANCE;
+		return relationalKnowledge.enemyOnPath(space, ship, ship.getPosition()) && propositionalKnowledge.getDistanceToEnemy() <= SHOOTING_DISTANCE;
 	}
 
 	/**
@@ -336,7 +336,7 @@ public class NothingLeftTeamClient extends spacesettlers.clients.TeamClient {
 		if (ship.getEnergy() < LOW_ENERGY) {
 			VELOCITY_MAGNITUDE = SPEED_SLOW;
 		} else if (!pathClear) {
-			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_MEDIUM;
+			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_NAVIGATION;
 		}
 				
 		// Next node we are targeting on the path
