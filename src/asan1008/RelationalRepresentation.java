@@ -1,14 +1,8 @@
 package asan1008;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
-
-import javax.management.remote.TargetedNotification;
-
-import spacesettlers.clients.ImmutableTeamInfo;
 import spacesettlers.objects.Asteroid;
 import spacesettlers.objects.Base;
 import spacesettlers.objects.Beacon;
@@ -335,7 +329,7 @@ public class RelationalRepresentation {
 		double shipX = ship.getPosition().getX();
 		double shipY = ship.getPosition().getY();
 		double orientation = ship.getPosition().getOrientation();
-		if( currentTargetEnemy.get(ship.getId()) != null) {
+		if( predictedEnemyPosition != null || currentTargetEnemy.get(ship.getId()) != null ) {
 			double radius = Ship.SHIP_RADIUS;
 			double enemyX = predictedEnemyPosition.getX();
 			double enemyY = predictedEnemyPosition.getY();
