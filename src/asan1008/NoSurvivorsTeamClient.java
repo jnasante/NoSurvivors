@@ -337,6 +337,47 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		return fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
 	}
 	
+	/**
+	 * 
+	 * @param pos
+	 * @param space
+	 * @return
+	 */
+	public static boolean positionIsInFreeSpace(Toroidal2DPhysics space, Position position) {
+		// loop through the obstacles
+		for (AbstractObject object : space.getAllObjects()) {
+			double dist = space.findShortestDistance(position, object.getPosition());
+			
+			if (object instanceof Asteroid && ((Asteroid)object).isMineable()) {
+				continue;
+			}
+
+			if (dist < (object.getRadius() + Ship.SHIP_RADIUS)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+	
+	private Position digOwnGrave(Toroidal2DPhysics space, Ship ship) {
+		Random random = new Random();
+		Position position = null;
+		for (int dist = 1000; dist >= 0; dist -= 50) {
+			for (int v = 0; v < 20; v++) {
+				double newX = random.nextFloat() * dist;
+				double newY = random.nextFloat() * dist;
+				position = new Position(newX, newY);
+				
+				if (positionIsInFreeSpace(space, position) && AStarSearch.isFreeLine(ship.getPosition(), position, space)) {
+					return position;
+				}
+			}
+		}
+		
+		return null;
+	}
+	
 	private void releaseTargetEnemy(Ship ship) {
 		relationalKnowledge.setCurrentTargetEnemy(null, ship);
 	}
@@ -465,10 +506,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		// The magnitude of our velocity vector. If we are dangerously low on energy, slow down
 		double VELOCITY_MAGNITUDE = agent.SPEED_FAST;
 		
-		if (ship.getEnergy() < 200) {
-			// TODO: randomly select points with clear path and shoot for that
-			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_CHEAT_DEATH;
-		} else if (ship.getEnergy() < agent.LOW_ENERGY) {
+		if (ship.getEnergy() < agent.LOW_ENERGY) {
 			VELOCITY_MAGNITUDE = agent.SPEED_SLOW;
 		} else if (goalObject instanceof Base && space.findShortestDistance(ship.getPosition(), goalObject.getPosition()) < agent.SHORT_DISTANCE) {  
 			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_BASE_ARRIVAL;
@@ -484,6 +522,14 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			targetPosition = goalObject.getPosition();
 			targetVelocity = new Vector2D(0, 0);
 		} else {
+			if (ship.getEnergy() < propositionalKnowledge.CRITICAL_HEALTH) {
+				// Set insane (deadly) speed
+				VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_CHEAT_DEATH;
+				
+				// Generate random point, path to which is free
+				targetPosition = digOwnGrave(space, ship);
+			}
+			
 			// Scale by which to multiply our distance vectors to get the desired velocity magnitude
 			double velocityScale = VELOCITY_MAGNITUDE / Math.sqrt(Math.pow(distance.getXValue(), 2) + Math.pow(distance.getYValue(), 2));
 			targetVelocity = new Vector2D(velocityScale*distance.getXValue(), velocityScale*distance.getYValue());
