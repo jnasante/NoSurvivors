@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+
+import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
 import spacesettlers.actions.AbstractAction;
@@ -433,9 +435,35 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {
-		return relationalKnowledge.enemyOnPath(space, ship, 
-				relationalKnowledge.getCurrentTargetEnemy(ship) != null ? relationalKnowledge.getCurrentTargetEnemy(ship).getPosition() : null ) 
+		Position enemy = relationalKnowledge.getCurrentTargetEnemy(ship) != null ? relationalKnowledge.getCurrentTargetEnemy(ship).getPosition() : null;
+		Position interceptPosition = getInterceptPosition(enemy, ship.getPosition(), 100);
+		return relationalKnowledge.enemyOnPath(space, ship, interceptPosition) 
 					&& propositionalKnowledge.getDistanceToEnemy() <= agent.SHOOTING_DISTANCE;
+	}
+	
+	/** 
+	 * TODO: documentation
+	 * 
+	 * @param space
+	 * @return
+	 */
+	private Position getInterceptPosition(Position goal, Position ship, double shipVelocity){
+		double goalVelocityX = goal.getTranslationalVelocityX();
+		double goalVelocityY = goal.getTranslationalVelocityY();
+		if(goalVelocityX == 0 && goalVelocityY == 0){
+			return goal;
+		}
+		double relativePositionX = goal.getX() - ship.getX();
+		double relativePositionY = goal.getY() - ship.getY();
+		double a = Math.pow(goalVelocityX, 2) + Math.pow(goalVelocityY, 2) - Math.pow(shipVelocity, 2);
+		double b = 2*(relativePositionX*relativePositionY + goalVelocityX*goalVelocityY);
+		double c = Math.pow(relativePositionX, 2) + Math.pow(relativePositionY, 2);
+		double quadraticTemp = Math.sqrt(Math.pow(b, 2) - 4*a*c);
+		double testSign = (-b + quadraticTemp)/(2*a);
+		double timeToIntercept = ( testSign > 0 ) ? testSign : (-b - quadraticTemp)/(2*a);
+		double x = goal.getX() + timeToIntercept*goalVelocityX;
+		double y = goal.getY() + timeToIntercept*goalVelocityY;
+		return new Position(x, y);
 	}
 
 	/**
