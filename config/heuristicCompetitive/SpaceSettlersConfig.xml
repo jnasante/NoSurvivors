@@ -34,10 +34,6 @@
 			<teamName>RandomClient</teamName>
 			<configFile>random-clientinit.xml</configFile>
 		</HighLevelTeamConfig>
-		<HighLevelTeamConfig>
-			<teamName>BeaconCollectorTeam</teamName>
-			<configFile>beacon-clientinit.xml</configFile>
-		</HighLevelTeamConfig>
  		<!-- The competitive ladder will have the aggressive heuristic -->
 		<HighLevelTeamConfig>
 			<teamName>HeuristicMinerTeam</teamName>
@@ -51,10 +47,6 @@
 			<teamName>NoSurvivorsTeamClient</teamName>
 			<configFile>spacesettlersinit.xml</configFile>
 		</HighLevelTeamConfig>
-		<HighLevelTeamConfig>
-			<teamName>NoSurvivorsTeamClient</teamName>
-			<configFile>agent1init.xml</configFile>
-		</HighLevelTeamConfig>
 	</teams>
 
 	<!-- Each team needs a base.  Optionally, you can initialize the location of the base -->
@@ -63,16 +55,14 @@
 			<teamName>RandomClient</teamName>
 		</BaseConfig>
 		<BaseConfig>
-			<teamName>BeaconCollectorTeam</teamName>
-		</BaseConfig>
-		<BaseConfig>
 			<teamName>HeuristicMinerTeam</teamName>
 		</BaseConfig>
 		<BaseConfig>
 			<teamName>DoNothingTeam</teamName>
 		</BaseConfig>
 		<BaseConfig>
-			<teamName>NoSurvivorsTeamClient</teamName></BaseConfig>
+			<teamName>NoSurvivorsTeamClient</teamName>
+		</BaseConfig>
 	</bases>
 	
 	<!-- Specify the options for creating asteroids.  Their locations are random. -->

@@ -34,10 +34,6 @@
 			<teamName>NoSurvivorsTeamClient</teamName>
 			<configFile>spacesettlersinit.xml</configFile>
 		</HighLevelTeamConfig>
-		<HighLevelTeamConfig>
-			<teamName>NoSurvivorsTeamClient2</teamName>
-			<configFile>agent1init.xml</configFile>
-		</HighLevelTeamConfig>
 	</variableTeams>
 
 </LadderConfig>

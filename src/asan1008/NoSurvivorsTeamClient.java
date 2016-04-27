@@ -49,7 +49,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	HashMap<UUID, ArrayList<SpacewarGraphics>> graphicsToAdd;
 	HashMap<UUID, LinkedList<Vertex>> currentPath;
 	HashMap<UUID, AbstractObject> currentGoalObject;
-	HashMap<UUID, Integer> mostWantedEnemy;
 	HashMap <UUID, Graph> graphByShip;
 	HashMap<UUID, Boolean> shipDied;
 	ResourceDelivery resourceDelivery;
@@ -336,6 +335,11 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	
 	private AbstractAction goHome(Toroidal2DPhysics space, Ship ship) {
 		setShouldShoot(ship, false);
+		if (relationalKnowledge.getNearestBase(ship) == null) {
+			log(ship.toString());
+			System.exit(0);
+		}
+		//System.exit(0);
 		return fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
 	}
 	
@@ -443,12 +447,12 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 		if (graphicsToAdd.get(ship.getId()) != null) {
 			graphicsToAdd.get(ship.getId()).clear();
-			graphicsToAdd.get(ship.getId()).add(new StarGraphics(3, Color.CYAN, path.get(0).getPosition()));
+			graphicsToAdd.get(ship.getId()).add(new StarGraphics(3, ship.getTeamColor(), path.get(0).getPosition()));
 			
 			while(iterator.hasNext()) {
 				Position current = iterator.next().getPosition();
 				LineGraphics line = new LineGraphics(prev, current, space.findShortestDistanceVector(prev, current));
-				line.setLineColor(Color.CYAN);
+				line.setLineColor(ship.getTeamColor());
 				graphicsToAdd.get(ship.getId()).add(line);
 				prev = current;
 			}
@@ -523,6 +527,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 */
 	private AbstractAction fasterMoveToObjectAction(Toroidal2DPhysics space, AbstractObject goalObject, Ship ship) {
 		currentGoalObject.put(ship.getId(), goalObject);
+		
+		if (propositionalKnowledge == null) log("prop knowledge null");
+		if (goalObject == null) log("goalObject null");
 		
 		// Next node we are targeting on the path
 		Position targetPosition = currentPath.get(ship.getId()) != null && !currentPath.get(ship.getId()).isEmpty() && 
@@ -678,7 +685,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		graphicsToAdd = new HashMap<UUID, ArrayList<SpacewarGraphics>>();
 		currentPath = new HashMap<UUID, LinkedList<Vertex>>();
 		currentGoalObject = new HashMap<UUID, AbstractObject>();
-		mostWantedEnemy = new HashMap<UUID, Integer>();
 		graphByShip = new HashMap<UUID, Graph>();
 		shipDied = new HashMap<UUID, Boolean>();
 		shouldShoot = new HashMap<UUID, Boolean>();
