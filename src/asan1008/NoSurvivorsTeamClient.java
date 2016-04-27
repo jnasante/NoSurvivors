@@ -17,7 +17,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
 import spacesettlers.actions.AbstractAction;
@@ -314,6 +313,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	private AbstractAction goToBeacon(Toroidal2DPhysics space, Ship ship) {
 		setShouldShoot(ship, false);
 		if (relationalKnowledge.getNearestBeacon(ship) != null) {
+			relationalKnowledge.setCurrentTargetBeacon(relationalKnowledge.getNearestBeacon(ship), ship);
 			return fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(ship), ship);
 		}
 		
@@ -415,7 +415,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			currentPath.put(ship.getId(), graph.findAStarPath(space));
 		} else {
 			if (currentPath.get(ship.getId()) != null) currentPath.get(ship.getId()).clear(); else currentPath.put(ship.getId(), new LinkedList<Vertex>());
-			currentPath.get(ship.getId()).add(new Vertex(currentGoalObject.get(ship.getId()).getPosition()));
+			currentPath.get(ship.getId()).add(new Vertex(getInterceptPosition(currentGoalObject.get(ship.getId()).getPosition(), ship.getPosition(), 
+					ship.getEnergy() < agent.LOW_ENERGY ? agent.SPEED_SLOW : agent.SPEED_FAST)));
 		}
 		
 		/* Draw path as planning takes place */
@@ -476,8 +477,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {
-		Position enemy = relationalKnowledge.getCurrentTargetEnemy(ship) != null ? relationalKnowledge.getCurrentTargetEnemy(ship).getPosition() : null;
-		Position interceptPosition = getInterceptPosition(enemy, ship.getPosition(), 100);
+		Position enemyPosition = relationalKnowledge.getCurrentTargetEnemy(ship) != null ? relationalKnowledge.getCurrentTargetEnemy(ship).getPosition() : null;
+		Position interceptPosition = enemyPosition != null ? getInterceptPosition(enemyPosition, ship.getPosition(), 100) : null;
 		return relationalKnowledge.enemyOnPath(space, ship, interceptPosition) 
 					&& propositionalKnowledge.getDistanceToEnemy() <= agent.SHOOTING_DISTANCE;
 	}
@@ -488,22 +489,22 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @param space
 	 * @return
 	 */
-	private Position getInterceptPosition(Position goal, Position ship, double shipVelocity){
-		double goalVelocityX = goal.getTranslationalVelocityX();
-		double goalVelocityY = goal.getTranslationalVelocityY();
-		if(goalVelocityX == 0 && goalVelocityY == 0){
-			return goal;
+	private Position getInterceptPosition(Position goalPosition, Position shipPosition, double velocity){
+		double goalVelocityX = goalPosition.getTranslationalVelocityX();
+		double goalVelocityY = goalPosition.getTranslationalVelocityY();
+		if(goalVelocityX == 0 && goalVelocityY == 0) {
+			return goalPosition;
 		}
-		double relativePositionX = goal.getX() - ship.getX();
-		double relativePositionY = goal.getY() - ship.getY();
-		double a = Math.pow(goalVelocityX, 2) + Math.pow(goalVelocityY, 2) - Math.pow(shipVelocity, 2);
+		double relativePositionX = goalPosition.getX() - shipPosition.getX();
+		double relativePositionY = goalPosition.getY() - shipPosition.getY();
+		double a = Math.pow(goalVelocityX, 2) + Math.pow(goalVelocityY, 2) - Math.pow(velocity, 2);
 		double b = 2*(relativePositionX*relativePositionY + goalVelocityX*goalVelocityY);
 		double c = Math.pow(relativePositionX, 2) + Math.pow(relativePositionY, 2);
 		double quadraticTemp = Math.sqrt(Math.pow(b, 2) - 4*a*c);
 		double testSign = (-b + quadraticTemp)/(2*a);
 		double timeToIntercept = ( testSign > 0 ) ? testSign : (-b - quadraticTemp)/(2*a);
-		double x = goal.getX() + timeToIntercept*goalVelocityX;
-		double y = goal.getY() + timeToIntercept*goalVelocityY;
+		double x = goalPosition.getX() + timeToIntercept*goalVelocityX;
+		double y = goalPosition.getY() + timeToIntercept*goalVelocityY;
 		return new Position(x, y);
 	}
 
@@ -546,7 +547,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 		// If we are within shooting distance of enemy, slow down and attack!
 		if ((relationalKnowledge.getCurrentTargetEnemy(ship) != null && goalObject.getId() == relationalKnowledge.getCurrentTargetEnemy(ship).getId()) && 
-				propositionalKnowledge.getDistanceToEnemy() < agent.SHOOTING_DISTANCE-10) {
+				propositionalKnowledge.getDistanceToEnemy() < agent.SHORT_DISTANCE) {
 			targetPosition = goalObject.getPosition();
 			targetVelocity = new Vector2D(0, 0);
 		} else {

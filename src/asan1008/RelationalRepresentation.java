@@ -21,6 +21,7 @@ public class RelationalRepresentation {
 	private HashMap<UUID, Ship> nearestEnemy = new HashMap<UUID, Ship>();
 	private HashMap<UUID, Ship> currentTargetEnemy = new HashMap<UUID, Ship>();
 	private HashMap<UUID, Asteroid> currentTargetAsteroid = new HashMap<UUID, Asteroid>();
+	private HashMap<UUID, Beacon> currentTargetBeacon = new HashMap<UUID, Beacon>();
 	private HashMap<UUID, Base> nearestBase = new HashMap<UUID, Base>();
 	private HashMap<UUID, Beacon> nearestBeacon = new HashMap<UUID, Beacon>();
 	private HashMap<UUID, Asteroid> nearestAsteroid = new HashMap<UUID, Asteroid>();
@@ -38,6 +39,7 @@ public class RelationalRepresentation {
 		nearestAsteroid.put(ship.getId(), findNearestAsteroid(space, ship));		
 		updateTargetEnemy(space, ship);
 		updateTargetAsteroid(space, ship);
+		updateTargetBeacon(space, ship);
 	}
 	
 	/**
@@ -87,6 +89,31 @@ public class RelationalRepresentation {
 			currentTargetAsteroid.put(ship.getId(), null);
 		}
 	}
+	
+	/**
+	 * If current target beacon is still alive, update to object to reflect changes in state
+	 * Otherwise, release target so we can perform another action
+	 * 
+	 * @param space Current space instance
+	 * @param ship Our ship
+	 */
+	public void updateTargetBeacon(Toroidal2DPhysics space, Ship ship) {
+		if (currentTargetBeacon.get(ship.getId()) != null) {
+			if (!currentTargetBeacon.get(ship.getId()).isAlive()) {
+				currentTargetBeacon.put(ship.getId(), null);
+				return;
+			}
+						
+			for (Beacon updatedTargetBeacon : space.getBeacons()) {
+				if (updatedTargetBeacon.getId() == currentTargetBeacon.get(ship.getId()).getId()) {
+					currentTargetBeacon.put(ship.getId(), updatedTargetBeacon);
+					return;
+				}				
+			}
+			
+			currentTargetBeacon.put(ship.getId(), null);
+		}
+	}
 
 	/**
 	 * Getter for nearestEnemy
@@ -131,6 +158,13 @@ public class RelationalRepresentation {
 	}
 
 	/**
+	 * Getter for currentTargetBeacon
+	 */
+	protected Beacon getCurrentTargetBeacon(Ship ship) {
+		return currentTargetBeacon.get(ship.getId());
+	}
+
+	/**
 	 * Setter for currentTargetEnemy
 	 */
 	protected void setCurrentTargetEnemy(Ship enemy, Ship ship) {
@@ -144,6 +178,13 @@ public class RelationalRepresentation {
 		currentTargetAsteroid.put(ship.getId(), asteroid);
 	}
 	
+	/**
+	 * Setter for currentTargetBeacon
+	 */
+	protected void setCurrentTargetBeacon(Beacon beacon, Ship ship) {
+		currentTargetBeacon.put(ship.getId(), beacon);
+	}
+
 	/**
 	 * Find the nearest ship on another team and aim for it
 	 * 
@@ -256,6 +297,10 @@ public class RelationalRepresentation {
 		double bestDistance = Double.POSITIVE_INFINITY;
 
 		for (Beacon beacon : beacons) {
+			if (currentTargetBeacon.values().contains(beacon)) {
+				continue;
+			}
+			
 			double dist = space.findShortestDistance(ship.getPosition(), beacon.getPosition());
 			if (dist < bestDistance) {
 				bestDistance = dist;
