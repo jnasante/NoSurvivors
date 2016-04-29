@@ -73,26 +73,31 @@ public class SpaceSettlersGUI {
 		infoPanel.setBorder(BorderFactory.createRaisedBevelBorder());
 		mainComponent = new JSpaceSettlersComponent(config.getHeight(), config.getWidth());
 		//JScrollPane mainScrollPane = new JScrollPane(mainComponent);
-		//JScrollPane infoScrollPane = new JScrollPane(infoPanel);
-		//infoScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-		//infoScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+		JScrollPane infoScrollPane = new JScrollPane(infoPanel);
+		infoScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		infoScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 		
 		// put them into the main layout
-		mainFrame.setLayout(new GridBagLayout());
-		GridBagConstraints constraints = new GridBagConstraints();
-		constraints.weightx = 1.0;
-		constraints.gridx = 0;
-		constraints.gridy = 0;
-		constraints.gridwidth = GridBagConstraints.RELATIVE;
-		constraints.fill = GridBagConstraints.BOTH;
-		mainFrame.add(mainComponent, constraints);
-		
-        constraints.gridx = 1;
-        constraints.gridy = 0;
-		constraints.weightx = 0.0;
-		constraints.gridwidth = GridBagConstraints.REMAINDER;
-		mainFrame.add(infoPanel, constraints);
+//		mainFrame.setLayout(new GridBagLayout());
+//		GridBagConstraints constraints = new GridBagConstraints();
+//		constraints.weightx = 1.0;
+//		constraints.gridx = 0;
+//		constraints.gridy = 0;
+//		constraints.gridwidth = GridBagConstraints.RELATIVE;
+//		constraints.fill = GridBagConstraints.BOTH;
+//		mainFrame.add(mainComponent, constraints);
+//		
+//        constraints.gridx = 1;
+//        constraints.gridy = 0;
+//		constraints.weightx = 0.0;
+//		constraints.gridwidth = GridBagConstraints.REMAINDER;
+//		//mainFrame.add(infoPanel, constraints);
+//		mainFrame.add(infoScrollPane);
 
+		mainFrame.setLayout(new BorderLayout());
+		mainFrame.add(mainComponent, BorderLayout.CENTER);
+		mainFrame.add(infoScrollPane, BorderLayout.EAST);
+		
 		/*
 		mainFrame.setLayout(new GridLayout(1,2));
 		mainFrame.add(mainComponent);
@@ -143,6 +148,11 @@ public class SpaceSettlersGUI {
 			// this resizes the main component to just fit the scaled height/width
 			mainComponent.setPreferredSize(new Dimension((int) (scale * config.getWidth()), 
 					(int) (scale * config.getHeight())));
+			
+			//System.out.println("Original preferred size for info is " + infoPanel.getPreferredSize());
+			infoScrollPane.setPreferredSize(new Dimension((int) infoSize.getWidth(), 
+					(int) (scale * config.getHeight())));
+			//System.out.println("Setting preferred size for info to " + infoPanel.getPreferredSize());
 
 			System.out.println("transform is " + graphicsTransform);
 		} else {

@@ -128,6 +128,20 @@ public class Position {
 			return false;
 		}
 	}
+
+	/**
+	 * Verifies that all components of the position are finite and not NaN
+	 * @return true if the position is valid (finite and a number, doesn't check world size) and false otherwise 
+	 */
+	public boolean isValid() {
+		if (Double.isFinite(x) && Double.isFinite(y) && 
+				Double.isFinite(angularVelocity) && Double.isFinite(orientation)  &&
+				velocity.isValid()) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 	
 	
 }

@@ -407,4 +407,17 @@ public final class Vector2D implements Serializable, Cloneable {
         return str;
     }
 
+    /**
+     * Ensures all components of the vector are valid (finite and not NaN)
+     * 
+	 * @return true if the vector is valid (finite and a number, doesn't check world size) and false otherwise 
+     */
+	public boolean isValid() {
+		if (Double.isFinite(x) && Double.isFinite(y)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 }

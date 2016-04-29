@@ -1,6 +1,5 @@
 package asan1008;
 
-import java.awt.Color;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -19,6 +18,8 @@ import java.util.UUID;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
+
+import javafx.geometry.Pos;
 import spacesettlers.actions.AbstractAction;
 import spacesettlers.actions.DoNothingAction;
 import spacesettlers.actions.PurchaseCosts;
@@ -139,6 +140,14 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 	
 	private AbstractAction getNextAction(Toroidal2DPhysics space, Ship ship) {
+		if (Double.isNaN(ship.getPosition().getX())) {
+			log(ship.toString());
+			log(ship.getTeamName());
+			log(((FasterMoveToObjectAction)ship.getCurrentAction()).targetVelocity.toString());
+			log("" + space.getCurrentTimestep());
+			System.exit(0);
+		}
+
 		// Update current knowledge of the environment
 		relationalKnowledge.updateRepresentation(space, ship);
 		propositionalKnowledge.updateRepresentation(relationalKnowledge, space, ship);
@@ -154,7 +163,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			
 			ship.setCurrentAction(null);
 			
-			return new DoNothingAction();
 		} else if (ship.getResources().getTotal() == 0 && ship.getEnergy() > agent.LOW_ENERGY &&
 				ship.getCurrentAction() instanceof FasterMoveToObjectAction && 
 				((FasterMoveToObjectAction)ship.getCurrentAction()).goalObject instanceof Base) {
@@ -335,12 +343,13 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	
 	private AbstractAction goHome(Toroidal2DPhysics space, Ship ship) {
 		setShouldShoot(ship, false);
-		if (relationalKnowledge.getNearestBase(ship) == null) {
-			log(ship.toString());
-			System.exit(0);
+		
+		if (relationalKnowledge.getNearestBase(ship) != null) {
+			return fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
 		}
-		//System.exit(0);
-		return fasterMoveToObjectAction(space, relationalKnowledge.getNearestBase(ship), ship);
+		
+		// Can't find base
+		return null;
 	}
 	
 	/**
@@ -373,6 +382,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			for (int v = 0; v < 20; v++) {
 				double newX = random.nextFloat() * dist;
 				double newY = random.nextFloat() * dist;
+				
+				if (newX < 0 || newX > space.getWidth() || newY < 0 || newY > space.getHeight()) log(newX + ", " + newY);
+				
 				position = new Position(newX, newY);
 				
 				if (positionIsInFreeSpace(space, position) && AStarSearch.isFreeLine(ship.getPosition(), position, space)) {
@@ -419,8 +431,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			currentPath.put(ship.getId(), graph.findAStarPath(space));
 		} else {
 			if (currentPath.get(ship.getId()) != null) currentPath.get(ship.getId()).clear(); else currentPath.put(ship.getId(), new LinkedList<Vertex>());
-			currentPath.get(ship.getId()).add(new Vertex(getInterceptPosition(currentGoalObject.get(ship.getId()).getPosition(), ship.getPosition(), 
-					ship.getEnergy() < agent.LOW_ENERGY ? agent.SPEED_SLOW : agent.SPEED_FAST)));
+			currentPath.get(ship.getId()).add(new Vertex(getInterceptPosition(space, currentGoalObject.get(ship.getId()).getPosition(), ship.getPosition(), 
+					ship.getEnergy() < agent.LOW_ENERGY ? agent.SPEED_SLOW : agent.SPEED_FAST, space.getWidth(), space.getHeight(), ship.getTeamName())));
 		}
 		
 		/* Draw path as planning takes place */
@@ -482,7 +494,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 */
 	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {
 		Position enemyPosition = relationalKnowledge.getCurrentTargetEnemy(ship) != null ? relationalKnowledge.getCurrentTargetEnemy(ship).getPosition() : null;
-		Position interceptPosition = enemyPosition != null ? getInterceptPosition(enemyPosition, ship.getPosition(), 100) : null;
+		Position interceptPosition = enemyPosition != null ? getInterceptPosition(space, enemyPosition, ship.getPosition(), 100, space.getWidth(), space.getHeight(), ship.getTeamName()) : null;
 		return relationalKnowledge.enemyOnPath(space, ship, interceptPosition) 
 					&& propositionalKnowledge.getDistanceToEnemy() <= agent.SHOOTING_DISTANCE;
 	}
@@ -493,12 +505,15 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @param space
 	 * @return
 	 */
-	private Position getInterceptPosition(Position goalPosition, Position shipPosition, double velocity){
+	private Position getInterceptPosition(Toroidal2DPhysics space, Position goalPosition, Position shipPosition, double velocity, int xMax, int yMax, String teamName) {
+		if (teamName.equalsIgnoreCase("FewSurvivorsTeamClient")) return goalPosition;
+		
 		double goalVelocityX = goalPosition.getTranslationalVelocityX();
 		double goalVelocityY = goalPosition.getTranslationalVelocityY();
 		if(goalVelocityX == 0 && goalVelocityY == 0) {
 			return goalPosition;
 		}
+		
 		double relativePositionX = goalPosition.getX() - shipPosition.getX();
 		double relativePositionY = goalPosition.getY() - shipPosition.getY();
 		double a = Math.pow(goalVelocityX, 2) + Math.pow(goalVelocityY, 2) - Math.pow(velocity, 2);
@@ -507,8 +522,28 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		double quadraticTemp = Math.sqrt(Math.pow(b, 2) - 4*a*c);
 		double testSign = (-b + quadraticTemp)/(2*a);
 		double timeToIntercept = ( testSign > 0 ) ? testSign : (-b - quadraticTemp)/(2*a);
-		double x = goalPosition.getX() + timeToIntercept*goalVelocityX;
-		double y = goalPosition.getY() + timeToIntercept*goalVelocityY;
+		double x = (goalPosition.getX() + timeToIntercept*goalVelocityX) % xMax;
+		double y = (goalPosition.getY() + timeToIntercept*goalVelocityY) % yMax;
+		
+		// TODO: This is still not quite right. It struggles with crossing borders.
+		
+		if (x < 0) {
+			x += xMax;
+		}
+		
+		if (y < 0) {
+			y += yMax;
+		}
+		
+		if (Double.isNaN(x) || Double.isNaN(y)) {
+			log("Avoided wormhole!");
+			log("\tgoalVelocityX: " + goalVelocityX + "\n\tgoalVelocityY: " + goalVelocityY + "\n\trelativePositionX: " + 
+					relativePositionX + "\n\trelativePositionY: " + relativePositionY + "\n\ta: " + a + "\n\tb: " + b + 
+					"\n\tc: " + c + "\n\tquadraticTemp: " + quadraticTemp + "\n\ttestSign: " + testSign + 
+					"\n\ttimeToIntercept: " + timeToIntercept + "\n\tx: " + x + "\t\ny: " + y);
+			return goalPosition;
+		}
+		
 		return new Position(x, y);
 	}
 
@@ -582,60 +617,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		return new FasterMoveToObjectAction(space, propositionalKnowledge.getCurrentPosition(), goalObject, targetPosition, targetVelocity, relationalKnowledge.getTargetOrientationToEnemy(space, ship));
 	}
 	
-	@Override
-	/**
-	 * If we have the resources, upgrade weapons, energy capacity, in that order
-	 */
-	public Map<UUID, PurchaseTypes> getTeamPurchases(Toroidal2DPhysics space,
-			Set<AbstractActionableObject> actionableObjects, ResourcePile resourcesAvailable,
-			PurchaseCosts purchaseCosts) {
-		
-		HashMap<UUID, PurchaseTypes> purchases = new HashMap<UUID, PurchaseTypes>();
-		
-		// can we buy another ship?
-		if (purchaseCosts.canAfford(PurchaseTypes.SHIP, resourcesAvailable)) {
-			for (AbstractActionableObject actionableObject : actionableObjects) {
-				if (actionableObject instanceof Base) {
-					Base base = (Base) actionableObject;
-					purchases.put(base.getId(), PurchaseTypes.SHIP);
-					log("The people's champion is increasing the size of its army");
-					break;
-				}
-			}
-		}
-		
-		// Don't buy anything else until we're done collecting asteroids
-		if (!propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
-			// can we upgrade weapon capacity?
-			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY, resourcesAvailable)) {
-				for (AbstractActionableObject actionableObject : actionableObjects) {
-					if (actionableObject instanceof Ship) {
-						Ship ship = (Ship) actionableObject;
-						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY.getPowerupMap())) {
-							purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY);
-							log("The people's champion is upgrading weapon capacity");
-						}
-					}
-				}
-			}
-			
-			// can we buy EMP?
-			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_EMP_LAUNCHER, resourcesAvailable)) {
-				for (AbstractActionableObject actionableObject : actionableObjects) {
-					if (actionableObject instanceof Ship) {
-						Ship ship = (Ship) actionableObject;
-						
-						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_EMP_LAUNCHER.getPowerupMap())) {
-							purchases.put(ship.getId(), PurchaseTypes.POWERUP_EMP_LAUNCHER);
-						}
-					}
-				}		
-			}
-		}
-		
-		return purchases;
-	}
-
 	/**
 	 * Helper method for logging messages
 	 * 
@@ -797,6 +778,61 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 	}
 
+	@Override
+	/**
+	 * If we have the resources, upgrade weapons, energy capacity, in that order
+	 */
+	public Map<UUID, PurchaseTypes> getTeamPurchases(Toroidal2DPhysics space,
+			Set<AbstractActionableObject> actionableObjects, ResourcePile resourcesAvailable,
+			PurchaseCosts purchaseCosts) {
+		
+		HashMap<UUID, PurchaseTypes> purchases = new HashMap<UUID, PurchaseTypes>();
+		
+		// can we buy another ship?
+		if (purchaseCosts.canAfford(PurchaseTypes.SHIP, resourcesAvailable)) {
+			for (AbstractActionableObject actionableObject : actionableObjects) {
+				if (actionableObject instanceof Base) {
+					Base base = (Base) actionableObject;
+					purchases.put(base.getId(), PurchaseTypes.SHIP);
+					log(base.getTeamName() + " is increasing the size of its army");
+					break;
+				}
+			}
+		}
+		
+		// Don't buy anything else until we're done collecting asteroids
+		if (!propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
+			// can we upgrade weapon capacity?
+			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY, resourcesAvailable)) {
+				for (AbstractActionableObject actionableObject : actionableObjects) {
+					if (actionableObject instanceof Ship) {
+						Ship ship = (Ship) actionableObject;
+						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY.getPowerupMap())) {
+							purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY);
+							log(ship.getTeamName() + " is upgrading weapon capacity");
+						}
+					}
+				}
+			}
+			
+			// can we buy EMP?
+			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_EMP_LAUNCHER, resourcesAvailable)) {
+				for (AbstractActionableObject actionableObject : actionableObjects) {
+					if (actionableObject instanceof Ship) {
+						Ship ship = (Ship) actionableObject;
+						
+						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_EMP_LAUNCHER.getPowerupMap())) {
+							purchases.put(ship.getId(), PurchaseTypes.POWERUP_EMP_LAUNCHER);
+							log(ship.getTeamName() + " is buying an EMP launcher");
+						}
+					}
+				}		
+			}
+		}
+		
+		return purchases;
+	}
+
 	/**
 	 * The No Survivors client shoots if there is an enemy nearby
 	 * 
@@ -806,23 +842,39 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return Map of UUID of actionable object to SpaceSettlersPowerupEnum
 	 */
 	@Override
+//	public Map<UUID, SpaceSettlersPowerupEnum> getPowerups(Toroidal2DPhysics space,
+//			Set<AbstractActionableObject> actionableObjects) {
+//		HashMap<UUID, SpaceSettlersPowerupEnum> powerUps = new HashMap<UUID, SpaceSettlersPowerupEnum>();
+//
+//		Random random = new Random();
+//		for (AbstractActionableObject actionableObject : actionableObjects) {
+//			if (!(actionableObject instanceof Ship)) {
+//				continue;
+//			}
+//			
+//			SpaceSettlersPowerupEnum powerup = SpaceSettlersPowerupEnum.values()[random
+//					.nextInt(SpaceSettlersPowerupEnum.values().length)];
+//			if (actionableObject.isValidPowerup(powerup) && random.nextDouble() < weaponsProbability && shouldShoot.get(actionableObject.getId()).booleanValue()) {
+//				powerUps.put(actionableObject.getId(), powerup);
+//			}
+//		}
+//
+//		return powerUps;
+//	}
+	
 	public Map<UUID, SpaceSettlersPowerupEnum> getPowerups(Toroidal2DPhysics space,
 			Set<AbstractActionableObject> actionableObjects) {
 		HashMap<UUID, SpaceSettlersPowerupEnum> powerUps = new HashMap<UUID, SpaceSettlersPowerupEnum>();
 
 		Random random = new Random();
 		for (AbstractActionableObject actionableObject : actionableObjects) {
-			if (!(actionableObject instanceof Ship)) {
-				continue;
-			}
-			
-			SpaceSettlersPowerupEnum powerup = SpaceSettlersPowerupEnum.values()[random
-					.nextInt(SpaceSettlersPowerupEnum.values().length)];
-			if (actionableObject.isValidPowerup(powerup) && random.nextDouble() < weaponsProbability && shouldShoot.get(actionableObject.getId()).booleanValue()) {
+			SpaceSettlersPowerupEnum powerup = SpaceSettlersPowerupEnum.values()[random.nextInt(SpaceSettlersPowerupEnum.values().length)];
+			if (actionableObject.isValidPowerup(powerup) && shouldShoot.get(actionableObject.getId())) {
 				powerUps.put(actionableObject.getId(), powerup);
 			}
 		}
-
+		
+		
 		return powerUps;
 	}
 

@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import spacesettlers.actions.AbstractAction;
 import spacesettlers.actions.DoNothingAction;
+import spacesettlers.actions.MoveAction;
 import spacesettlers.actions.MoveToObjectAction;
 import spacesettlers.actions.PurchaseCosts;
 import spacesettlers.actions.PurchaseTypes;
@@ -23,6 +24,7 @@ import spacesettlers.objects.powerups.SpaceSettlersPowerupEnum;
 import spacesettlers.objects.resources.ResourcePile;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
+import spacesettlers.utilities.Vector2D;
 import sun.util.logging.resources.logging;
 
 /**
@@ -66,6 +68,42 @@ public class AggressiveHeuristicAsteroidCollectorSingletonTeamClient extends Tea
 		return actions;
 	}
 	
+	private Position getInterceptPosition(Toroidal2DPhysics space, Position goalPosition, Position shipPosition, double velocity, int xMax, int yMax, String teamName) {
+		if (teamName.equalsIgnoreCase("FewSurvivorsTeamClient")) return goalPosition;
+		
+		double goalVelocityX = goalPosition.getTranslationalVelocityX();
+		double goalVelocityY = goalPosition.getTranslationalVelocityY();
+		if(goalVelocityX == 0 && goalVelocityY == 0) {
+			return goalPosition;
+		}
+		
+		double relativePositionX = goalPosition.getX() - shipPosition.getX();
+		double relativePositionY = goalPosition.getY() - shipPosition.getY();
+		double a = Math.pow(goalVelocityX, 2) + Math.pow(goalVelocityY, 2) - Math.pow(velocity, 2);
+		double b = 2*(relativePositionX*relativePositionY + goalVelocityX*goalVelocityY);
+		double c = Math.pow(relativePositionX, 2) + Math.pow(relativePositionY, 2);
+		double quadraticTemp = Math.sqrt(Math.pow(b, 2) - 4*a*c);
+		double testSign = (-b + quadraticTemp)/(2*a);
+		double timeToIntercept = ( testSign > 0 ) ? testSign : (-b - quadraticTemp)/(2*a);
+		double x = (goalPosition.getX() + timeToIntercept*goalVelocityX) % xMax;
+		double y = (goalPosition.getY() + timeToIntercept*goalVelocityY) % yMax;
+		
+		if (x < 0) {
+			x += xMax;
+		}
+		
+		if (y < 0) {
+			y += yMax;
+		}
+		
+		if (Double.isNaN(x) || Double.isNaN(y)) {
+			return goalPosition;
+		}
+		
+		Position interceptPosition = new Position(x, y);
+		return interceptPosition;
+	}
+	
 	/**
 	 * Gets the action for the asteroid collecting ship (while being aggressive towards the other ships)
 	 * @param space
@@ -76,7 +114,20 @@ public class AggressiveHeuristicAsteroidCollectorSingletonTeamClient extends Tea
 			Ship ship) {
 		AbstractAction current = ship.getCurrentAction();
 		Position currentPosition = ship.getPosition();
-
+		
+		if (Double.isNaN(ship.getPosition().getX())) {
+			System.out.println(ship.toString());
+			System.out.println(ship.getTeamName());
+			System.out.println("" + space.getCurrentTimestep());
+			System.exit(0);
+		}
+		
+		if (ship.getEnergy() > 10000) {
+			Position newPosition = getInterceptPosition(space, pickNearestEnemyShip(space, ship).getPosition(), ship.getPosition(), 
+					ship.getPosition().getTotalTranslationalVelocity(), space.getWidth(), space.getHeight(), ship.getTeamName());
+			return new MoveAction(space, currentPosition, newPosition);
+		}
+		
 		// aim for a beacon if there isn't enough energy
 		if (ship.getEnergy() < 2000) {
 			Beacon beacon = pickNearestBeacon(space, ship);

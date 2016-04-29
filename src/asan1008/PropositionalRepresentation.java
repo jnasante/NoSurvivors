@@ -24,10 +24,10 @@ public class PropositionalRepresentation {
 	// Constants
 	public final int SPEED_NAVIGATION = 40;
 	public final int SPEED_BASE_ARRIVAL = 5;
-	public final int SPEED_CHEAT_DEATH = 200;
+	public final int SPEED_CHEAT_DEATH = Integer.MAX_VALUE;
 	public final int PLANNING_FREQUENCY = 20;
 	public final int LOW_BASE_ENERGY = 1000;
-	public final int CRITICAL_HEALTH = 500;
+	public final int CRITICAL_HEALTH = 200;
 	public final double MINIMUM_ASTEROID_SEARCH_RADIUS = 200;
 	public final double MAXIMUM_ASTEROID_SEARCH_RADIUS = 800;
 	public final double ASTEROID_COLLECTION_PROBABILITY_THRESHOLD = 0.3;

@@ -26,7 +26,7 @@ public class AStarSearch  {
 	 */
 	private static final int fudge_factor = 10;
 	private static final int numGraphNodes = 200;
-	private static final double maxNodeDistance = 200;
+	private static final double maxNodeDistance = 100;
 
 	/**
 	 * Ensures that the specified point is not inside an obstacle

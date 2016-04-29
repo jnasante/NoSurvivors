@@ -68,8 +68,20 @@ public class MoveAction extends AbstractAction {
 	public MoveAction(Toroidal2DPhysics space, Position currentLocation, 
 			Position targetLocation, Vector2D targetVelocity) {
 		super();
-		this.targetLocation = targetLocation;
-		this.targetVelocity = targetVelocity;
+		
+		if (Double.isFinite(targetLocation.getX()) && Double.isFinite(targetLocation.getY())) {
+			this.targetLocation = targetLocation;
+		} else {
+			System.out.println("Error: you called MoveAction with a target location that is not finite. Using current instead.");
+			this.targetLocation = currentLocation;
+		}
+		
+		if (Double.isFinite(targetVelocity.getXValue()) && Double.isFinite(targetVelocity.getYValue())) {
+			this.targetVelocity = targetVelocity;
+		} else {
+			System.out.println("Error: you called MoveAction with a target velocity that is not finite. Using zero instead.");
+			this.targetVelocity = new Vector2D();
+		}
 		this.isFinished = false;
 		KvRotational = 2.53;
 		KpRotational = 1.6;
@@ -87,7 +99,14 @@ public class MoveAction extends AbstractAction {
 	public MoveAction(Toroidal2DPhysics space, Position currentLocation, 
 			Position targetLocation) {
 		super();
-		this.targetLocation = targetLocation;
+
+		if (Double.isFinite(targetLocation.getX()) && Double.isFinite(targetLocation.getY())) {
+			this.targetLocation = targetLocation;
+		} else {
+			System.out.println("Error: you called MoveAction with a target location that is not finite. Using current instead.");
+			this.targetLocation = currentLocation;
+		}
+
 		this.targetVelocity = new Vector2D();
 		this.isFinished = false;
 		KvRotational = 2.53;

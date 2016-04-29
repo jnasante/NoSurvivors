@@ -510,8 +510,12 @@ public class Toroidal2DPhysics {
 
 				Movement actionMovement = action.getMovement(this, ship);
 
-				Position newPostion = applyMovement(currentPosition, actionMovement, timeStep);
-				ship.setPosition(newPostion);
+				Position newPosition = applyMovement(currentPosition, actionMovement, timeStep);
+				if (newPosition.isValid()) {
+					ship.setPosition(newPosition);
+				} else {
+					ship.setPosition(currentPosition);
+				}
 				
 				// spend ship energy proportional to its acceleration (old formula used velocity) and mass (new for space settlers
 				// since resources cost mass)

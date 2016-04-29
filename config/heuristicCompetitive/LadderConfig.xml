@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LadderConfig>
 	<!-- The number of times each match is repeated -->
-	<numRepeatMatches>3</numRepeatMatches>
+	<numRepeatMatches>1</numRepeatMatches>
 
 	<!-- The maximum number of variable (e.g. can change each match) teams in a game -->
 	<maximumNumberVariableTeams>3</maximumNumberVariableTeams>
@@ -25,14 +25,25 @@
 			<initialRegionCenterY>400</initialRegionCenterY>
 			<initialRegionRadius>300</initialRegionRadius>
 		</HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<teamName>DoNothing</teamName>
+			<configFile>donothing-clientinit.xml</configFile>
+			<initialRegionCenterX>500</initialRegionCenterX>
+			<initialRegionCenterY>300</initialRegionCenterY>
+			<initialRegionRadius>100</initialRegionRadius>
+		</HighLevelTeamConfig>
 	</staticTeams>
 
-	<!-- The list of variable clients/teams.  Each will participate in numRepeatMatches but against 
+	<!-- The list of variable clients/teams.  Each will participate in numRepeatMatches but against
 		 each other and the static teams. -->
 	<variableTeams>
 		<HighLevelTeamConfig>
 			<teamName>NoSurvivorsTeamClient</teamName>
 			<configFile>spacesettlersinit.xml</configFile>
+		</HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<teamName>FewSurvivorsTeamClient</teamName>
+			<configFile>agent1init.xml</configFile>
 		</HighLevelTeamConfig>
 	</variableTeams>
 

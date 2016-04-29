@@ -270,11 +270,14 @@ public class RelationalRepresentation {
 
 		for (Base base : space.getBases()) {
 			if (base.getTeamName().equalsIgnoreCase(ship.getTeamName())) {
-				double dist = space.findShortestDistance(ship.getPosition(), base.getPosition());
-				if (dist < minDistance) {
-					minDistance = dist;
-					nearestBase = base;
-				}
+				nearestBase = base;
+				break;
+				
+//				double dist = space.findShortestDistance(ship.getPosition(), base.getPosition());
+//				if (dist < minDistance) {
+//					minDistance = dist;
+//					nearestBase = base;
+//				}
 			}
 		}
 		
