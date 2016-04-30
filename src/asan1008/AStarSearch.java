@@ -40,11 +40,18 @@ public class AStarSearch  {
 	 * @return true if it is in free space and false otherwise
 	 */
 	public static boolean inFreeSpace(Position pos, Toroidal2DPhysics state) {
+		// TODO: verify that this does what is expected
 		// loop through the obstacles
-		for (Asteroid asteroid : state.getAsteroids()) {
-			double dist = state.findShortestDistance(pos, asteroid.getPosition());
+		for (AbstractObject object : state.getAllObjects()) {
+			if (object instanceof Beacon 
+					|| (object instanceof Asteroid && ((Asteroid)object).isMineable())
+					|| object instanceof Ship) {
+				continue;
+			}
+			
+			double dist = state.findShortestDistance(pos, object.getPosition());
 
-			if (dist < (asteroid.getRadius() + fudge_factor)) {
+			if (dist < (object.getRadius() + fudge_factor)) {
 				return false;
 			}
 		}
@@ -105,7 +112,6 @@ public class AStarSearch  {
 		double randomCoord = random.nextFloat() * (max - min) + min;
 		return randomCoord % boundary;
 	}
-
 
 	/**
 	 * creates a graph of random locations plus the starting position and each of the beacons
@@ -178,9 +184,9 @@ public class AStarSearch  {
 			obstaclesForGraph.add(ship);
 		}
 		
-		// avoid the other team's bases
+		// avoid all bases (except if our goal is that base (which would be ours in that case)
 		for (Base base : state.getBases()) {
-			if (!base.getTeamName().equalsIgnoreCase(myShip.getTeamName())) {
+			if (!base.getPosition().equals(goalPosition)) {
 				obstaclesForGraph.add(base);
 			}
 		}

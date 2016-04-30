@@ -3,6 +3,8 @@ package asan1008;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
+
+import javafx.geometry.Pos;
 import spacesettlers.objects.Asteroid;
 import spacesettlers.objects.Base;
 import spacesettlers.objects.Beacon;
@@ -372,7 +374,7 @@ public class RelationalRepresentation {
 	 * 
 	 * @return Boolean value for whether or not we should shoot
 	 */
-	public boolean enemyOnPath(Toroidal2DPhysics space, Ship ship, Position predictedEnemyPosition){
+	public boolean enemyOnPath(Toroidal2DPhysics space, Ship ship, Position predictedEnemyPosition) {
 		// prepare the necessary variables for the algorithm
 		double shipX = ship.getPosition().getX();
 		double shipY = ship.getPosition().getY();
@@ -428,6 +430,7 @@ public class RelationalRepresentation {
 				}
 			}
 		}
+		
 		// enemy is not on path
 		return false;
 	}
@@ -440,10 +443,10 @@ public class RelationalRepresentation {
 	 * 
 	 * @return Double value of orientation to enemy from ship
 	 */
-	public double getTargetOrientationToEnemy(Toroidal2DPhysics space, Ship ship) {
-		if(currentTargetEnemy.get(ship.getId()) != null) {
+	public double getTargetOrientationToEnemy(Toroidal2DPhysics space, Ship ship, Position targetPosition) {
+		if (targetPosition != null) {
 			Position currentLoc = ship.getPosition();
-			Position goalLoc = currentTargetEnemy.get(ship.getId()).getPosition();
+			Position goalLoc = targetPosition;
 			double shipX = currentLoc.getX();
 			double shipY = currentLoc.getY();
 			double enemyX = goalLoc.getX();

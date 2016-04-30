@@ -140,6 +140,13 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 	}
 	
+	/**
+	 * Get action for our ships
+	 * 
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
 	private AbstractAction getNextAction(Toroidal2DPhysics space, Ship ship) {
 		if (Double.isNaN(ship.getPosition().getX())) {
 			log(ship.toString());
@@ -190,7 +197,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			}
 		}
 
-		if (asteroidCollectorIDs.contains(ship.getId()) && propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP)) {
+		if (isAsteroidCollector(ship)) {
 			// Asteroid collecting ship
 			return getThatPaperAction(space, ship);
 		} else {
@@ -199,6 +206,13 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		}
 	}
 	
+	/**
+	 * Action for asteroid collectors
+	 * 
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
 	private AbstractAction getThatPaperAction(Toroidal2DPhysics space, Ship ship) {
 		AbstractAction newAction = null;
 
@@ -285,6 +299,13 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		return new DoNothingAction();
 	}
 	
+	/**
+	 * Go for asteroid
+	 * 
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
 	private AbstractAction goMiningNearby(Toroidal2DPhysics space, Ship ship) {
 		setShouldShoot(ship, false);
 				
@@ -301,6 +322,13 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		return null;
 	}
 	
+	/**
+	 * Target an enemy and go after them
+	 * 
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
 	private AbstractAction huntEnemy(Toroidal2DPhysics space, Ship ship) {
 		setShouldShoot(ship, shouldShootAtEnemy(space, ship));
 		
@@ -318,16 +346,13 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		return null;
 	}
 	
-	private AbstractAction goToBeacon(Toroidal2DPhysics space, Ship ship) {
-		setShouldShoot(ship, false);
-		if (relationalKnowledge.getNearestBeacon(ship) != null) {
-			relationalKnowledge.setCurrentTargetBeacon(relationalKnowledge.getNearestBeacon(ship), ship);
-			return fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(ship), ship);
-		}
-		
-		return null;
-	}
-	
+	/**
+	 * Decide whether or not to go to beacon or base
+	 * 
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
 	private AbstractAction goHeal(Toroidal2DPhysics space, Ship ship) {
 		// Going to recharge, release target enemy
 		releaseTargetEnemy(ship);
@@ -342,6 +367,30 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		return goHome(space, ship);
 	}
 	
+	/**
+	 * Go to beacon
+	 * 
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
+	private AbstractAction goToBeacon(Toroidal2DPhysics space, Ship ship) {
+		setShouldShoot(ship, false);
+		if (relationalKnowledge.getNearestBeacon(ship) != null) {
+			relationalKnowledge.setCurrentTargetBeacon(relationalKnowledge.getNearestBeacon(ship), ship);
+			return fasterMoveToObjectAction(space, relationalKnowledge.getNearestBeacon(ship), ship);
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Go to base
+	 * 
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
 	private AbstractAction goHome(Toroidal2DPhysics space, Ship ship) {
 		setShouldShoot(ship, false);
 		
@@ -376,6 +425,13 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		return true;
 	}
 	
+	/**
+	 * Generate a random free point (where ship can be...uh..."put down")
+	 * 
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
 	private Position digOwnGrave(Toroidal2DPhysics space, Ship ship) {
 		Random random = new Random();
 		Position position = null;
@@ -397,20 +453,47 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		return null;
 	}
 	
+	/**
+	 * Let go of a target enemy
+	 * 
+	 * @param ship
+	 */
 	private void releaseTargetEnemy(Ship ship) {
 		relationalKnowledge.setCurrentTargetEnemy(null, ship);
 	}
 	
+	/**
+	 * Check if a ship is an asteroid collector currently
+	 * 
+	 * @param ship
+	 * @return
+	 */
+	private boolean isAsteroidCollector(Ship ship) {
+		return asteroidCollectorIDs.contains(ship.getId()) && propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP);
+	}
+	
+	/**
+	 * Check if we should track resource collection results for learning
+	 * 
+	 * @param ship
+	 * @param timeStep
+	 * @return
+	 */
 	private boolean shouldTrackResourceDeliveries(Ship ship, int timeStep) {
-		if ((ship.getTeamName().equals("agent1") || ship.getTeamName().equals("agent2")) && asteroidCollectorIDs.contains(ship.getId()) && 
-				propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP) && 
-				timeStep < 5000 && shouldSaveResourceCollectionData) {
+		if ((ship.getTeamName().equals("agent1") || ship.getTeamName().equals("agent2")) && isAsteroidCollector(ship) && 
+				propositionalKnowledge.shouldCollectResources(agent.ASTEROID_COLLECTING_TIMESTEP) && shouldSaveResourceCollectionData) {
 				return true;			
 		}
 		
 		return false;
 	}
 	
+	/**
+	 * Check if beacon would be more convenient that going to base
+	 * 
+	 * @param ship
+	 * @return
+	 */
 	private boolean isBeaconMoreConvenientThanBase(Ship ship) {
 		// If beacon is within short distance, or it is closer than the nearest base,
 		// or the base doesn't have enough energy to satisfy our burning hunger
@@ -431,15 +514,27 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random());
 			currentPath.put(ship.getId(), graph.findAStarPath(space));
 		} else {
+			double targetVelocity = Missile.INITIAL_VELOCITY;
+			if (isAsteroidCollector(ship)) {
+				targetVelocity = ship.getEnergy() < agent.LOW_ENERGY ? agent.SPEED_SLOW : agent.SPEED_FAST;
+			}
+			
 			if (currentPath.get(ship.getId()) != null) currentPath.get(ship.getId()).clear(); else currentPath.put(ship.getId(), new LinkedList<Vertex>());
 			currentPath.get(ship.getId()).add(new Vertex(getInterceptPosition(space, currentGoalObject.get(ship.getId()).getPosition(), ship.getPosition(), 
-					ship.getEnergy() < agent.LOW_ENERGY ? agent.SPEED_SLOW : agent.SPEED_FAST, space.getWidth(), space.getHeight(), ship.getTeamName())));
+					targetVelocity, space.getWidth(), space.getHeight(), ship.getTeamName())));
 		}
 		
 		/* Draw path as planning takes place */
 		if (currentPath.get(ship.getId()) != null) graphicsToAdd.put(ship.getId(), drawPath(currentPath.get(ship.getId()), space, ship));
 	}
 	
+	/**
+	 * Check if a ship has reached a vertex
+	 * 
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
 	private boolean reachedVertex(Toroidal2DPhysics space, Ship ship) {
 		return 
 				currentPath.get(ship.getId()) != null && 
@@ -614,8 +709,10 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					space.findShortestDistance(goalObject.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()), 
 					space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()));
 		}
-							
-		return new FasterMoveToObjectAction(space, propositionalKnowledge.getCurrentPosition(), goalObject, targetPosition, targetVelocity, relationalKnowledge.getTargetOrientationToEnemy(space, ship));
+		
+		return new FasterMoveToObjectAction(space, propositionalKnowledge.getCurrentPosition(), 
+				goalObject, targetPosition, targetVelocity, 
+				relationalKnowledge.getTargetOrientationToEnemy(space, ship, targetPosition));
 	}
 	
 	/**
@@ -627,11 +724,23 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		System.out.println(logMessage);
 	}
 	
+	/**
+	 * Writing results from attempt at collecting asteroid for learning later
+	 * 
+	 * @param test
+	 * @param success
+	 */
 	public void writeResourceDeliveriesToCsv(Boolean test, int success) {
 		resourceDelivery.setSuccess(success);
 		writeResourceDeliveriesToCsv(test);
 	}
 	
+	/**
+	 * Writing results from attempt at collecting asteroid for learning later
+	 * 
+	 * @param test
+	 * @param success
+	 */
 	public void writeResourceDeliveriesToCsv(boolean test) {
 		try {
 			FileWriter writer = new FileWriter(test ? "asan1008/resource_delivery_test.csv" : "asan1008/resource_delivery_training.csv", true);
@@ -874,7 +983,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				powerUps.put(actionableObject.getId(), powerup);
 			}
 		}
-		
 		
 		return powerUps;
 	}

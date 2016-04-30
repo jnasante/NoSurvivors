@@ -9,7 +9,7 @@
 	<teamColorBlue>206</teamColorBlue>
 	
 	<!-- The name that shows up in the ladder -->
-	<ladderName>Jared and Sean, we're comin for ya. - Joseph and Aric</ladderName>
+	<ladderName>Why did the chickens cross the road? They didn’t...we’re still waiting for Nick and Shelby. - Joseph and Aric</ladderName>
 	
 	<!-- The number of ships in the team.  Note, if this is bigger than the maximum number of allowable ships per team, it is ignored -->
 	<numberInitialShipsInTeam>2</numberInitialShipsInTeam>
