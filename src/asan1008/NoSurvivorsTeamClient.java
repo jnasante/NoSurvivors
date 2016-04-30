@@ -36,6 +36,7 @@ import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
 import spacesettlers.objects.powerups.SpaceSettlersPowerupEnum;
 import spacesettlers.objects.resources.ResourcePile;
+import spacesettlers.objects.weapons.Missile;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 import spacesettlers.utilities.Vector2D;
@@ -494,7 +495,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 */
 	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {
 		Position enemyPosition = relationalKnowledge.getCurrentTargetEnemy(ship) != null ? relationalKnowledge.getCurrentTargetEnemy(ship).getPosition() : null;
-		Position interceptPosition = enemyPosition != null ? getInterceptPosition(space, enemyPosition, ship.getPosition(), 100, space.getWidth(), space.getHeight(), ship.getTeamName()) : null;
+		Position interceptPosition = enemyPosition != null ? getInterceptPosition(space, enemyPosition, ship.getPosition(), Missile.INITIAL_VELOCITY, space.getWidth(), space.getHeight(), ship.getTeamName()) : null;
 		return relationalKnowledge.enemyOnPath(space, ship, interceptPosition) 
 					&& propositionalKnowledge.getDistanceToEnemy() <= agent.SHOOTING_DISTANCE;
 	}

@@ -24,7 +24,7 @@ public class AStarSearch  {
 	/**
 	 * Fudge factor keeps you from going too close to obstacles
 	 */
-	private static final int fudge_factor = 10;
+	private static final int fudge_factor = Ship.SHIP_RADIUS;
 	private static final int numGraphNodes = 200;
 	private static final double maxNodeDistance = 100;
 
@@ -88,6 +88,23 @@ public class AStarSearch  {
 		}
 		return true;
 	}
+	
+	/**
+	 * Generate random number within a range, within the bounds 
+	 * 
+	 * Taken and modified from: 
+	 * http://stackoverflow.com/questions/9723765/generating-a-random-double-number-of-a-certain-range-in-java
+	 * 
+	 * @param min
+	 * @param max
+	 * @param boundary
+	 * @return
+	 */
+	public static double randomInRangeWithinBounds(double min, double max, double boundary) {
+		Random random = new Random();
+		double randomCoord = random.nextFloat() * (max - min) + min;
+		return randomCoord % boundary;
+	}
 
 
 	/**
@@ -120,11 +137,19 @@ public class AStarSearch  {
 		goal.setGoal();
 		graph.addVertex(goal);
 
+		Vector2D distanceToGoal = state.findShortestDistanceVector(startPos, goalPosition);
+		double searchRadius = distanceToGoal.getMagnitude()/2;
+		Position middlePoint = new Position(startPos.getX()+(distanceToGoal.getXValue()/2), startPos.getY()+(distanceToGoal.getYValue()/2));
+		double minX = middlePoint.getX() - searchRadius;
+		double maxX = middlePoint.getX() + searchRadius;
+		double minY = middlePoint.getY() - searchRadius;
+		double maxY = middlePoint.getY() + searchRadius;
+		
 		Position position;
 		// add a random set of vertices that are not inside obstacles
 		for (int v = 0; v < numGraphNodes; v++) {
-			double newX = random.nextFloat() * state.getWidth();
-			double newY = random.nextFloat() * state.getHeight();
+			double newX = randomInRangeWithinBounds(minX, maxX, state.getWidth());
+			double newY = randomInRangeWithinBounds(minY, maxY, state.getHeight());
 			position = new Position(newX, newY);
 			
 			if (inFreeSpace(position, state)) {
