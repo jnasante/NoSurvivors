@@ -26,7 +26,7 @@ public class AStarSearch  {
 	 */
 	private static final int fudge_factor = Ship.SHIP_RADIUS;
 	private static final int numGraphNodes = 200;
-	private static final double maxNodeDistance = 100;
+	private static final double maxNodeDistance = 150;
 
 	/**
 	 * Ensures that the specified point is not inside an obstacle

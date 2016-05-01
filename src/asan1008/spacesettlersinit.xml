@@ -9,7 +9,7 @@
 	<teamColorBlue>206</teamColorBlue>
 	
 	<!-- The name that shows up in the ladder -->
-	<ladderName>Why did the chickens cross the road? They didn’t...we’re still waiting for Nick and Shelby. - Joseph and Aric</ladderName>
+	<ladderName>bang bang, an aggressive haiku by joseph and aric: bang bang it rings out - another one meets its end - no survivors left</ladderName>
 	
 	<!-- The number of ships in the team.  Note, if this is bigger than the maximum number of allowable ships per team, it is ignored -->
 	<numberInitialShipsInTeam>2</numberInitialShipsInTeam>

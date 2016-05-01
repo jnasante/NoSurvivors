@@ -111,15 +111,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				if(propositionalKnowledge.shouldPlan()) {
 					//log("should plan");
 					if (currentGoalObject != null) {
-						HashSet<AbstractObject> obstructions = new HashSet<AbstractObject>();
-						for(AbstractObject object : space.getAllObjects()){
-							if(object instanceof Beacon || object.getId() == currentGoalObject.get(ship.getId()).getId() || object.getId() == ship.getId()){
-								continue;
-							}
-							obstructions.add(object);
-						}
-						
-						pathClear = !shouldUseAStar || space.isPathClearOfObstructions(ship.getPosition(), currentGoalObject.get(ship.getId()).getPosition(), obstructions, 10);
 						getAStarPathToGoal(space, ship, currentGoalObject.get(ship.getId()).getPosition());
 					}
 				}
@@ -439,10 +430,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			for (int v = 0; v < 20; v++) {
 				double newX = random.nextFloat() * dist;
 				double newY = random.nextFloat() * dist;
-				
-				if (newX < 0 || newX > space.getWidth() || newY < 0 || newY > space.getHeight()) log(newX + ", " + newY);
-				
-				position = new Position(newX, newY);
+								
+				position = new Position(newX % space.getWidth(), newY % space.getHeight());
 				
 				if (positionIsInFreeSpace(space, position) && AStarSearch.isFreeLine(ship.getPosition(), position, space)) {
 					return position;
@@ -510,18 +499,38 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private void getAStarPathToGoal(Toroidal2DPhysics space, Ship ship, Position goalPosition) {
+		// Determine target velocity
+		double targetVelocity = Missile.INITIAL_VELOCITY;
+		if (isAsteroidCollector(ship)) {
+			targetVelocity = ship.getEnergy() < agent.LOW_ENERGY ? agent.SPEED_SLOW : agent.SPEED_FAST;
+		}
+		
+		// Calculate intercept position
+		Position interceptPosition = getInterceptPosition(space, currentGoalObject.get(ship.getId()).getPosition(), ship.getPosition(), 
+				targetVelocity, space.getWidth(), space.getHeight(), ship.getTeamName());
+
+		// Get obstructions
+		HashSet<AbstractObject> obstructions = new HashSet<AbstractObject>();
+		for(AbstractObject object : space.getAllObjects()){
+			if(object instanceof Beacon || object.getId() == currentGoalObject.get(ship.getId()).getId() || object.getId() == ship.getId()){
+				continue;
+			}
+			obstructions.add(object);
+		}
+		
+		// If path is clear of obstructions, don't use A*
+		pathClear = !shouldUseAStar || space.isPathClearOfObstructions(ship.getPosition(), interceptPosition, obstructions, 10);
 		if (!pathClear) {
 			Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random());
 			currentPath.put(ship.getId(), graph.findAStarPath(space));
 		} else {
-			double targetVelocity = Missile.INITIAL_VELOCITY;
-			if (isAsteroidCollector(ship)) {
-				targetVelocity = ship.getEnergy() < agent.LOW_ENERGY ? agent.SPEED_SLOW : agent.SPEED_FAST;
+			if (currentPath.get(ship.getId()) != null) {
+				 currentPath.get(ship.getId()).clear(); 
+			} else {
+				currentPath.put(ship.getId(), new LinkedList<Vertex>());
 			}
 			
-			if (currentPath.get(ship.getId()) != null) currentPath.get(ship.getId()).clear(); else currentPath.put(ship.getId(), new LinkedList<Vertex>());
-			currentPath.get(ship.getId()).add(new Vertex(getInterceptPosition(space, currentGoalObject.get(ship.getId()).getPosition(), ship.getPosition(), 
-					targetVelocity, space.getWidth(), space.getHeight(), ship.getTeamName())));
+			currentPath.get(ship.getId()).add(new Vertex(interceptPosition));
 		}
 		
 		/* Draw path as planning takes place */
@@ -591,8 +600,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {
 		Position enemyPosition = relationalKnowledge.getCurrentTargetEnemy(ship) != null ? relationalKnowledge.getCurrentTargetEnemy(ship).getPosition() : null;
 		Position interceptPosition = enemyPosition != null ? getInterceptPosition(space, enemyPosition, ship.getPosition(), Missile.INITIAL_VELOCITY, space.getWidth(), space.getHeight(), ship.getTeamName()) : null;
-		return relationalKnowledge.enemyOnPath(space, ship, interceptPosition) 
-					&& propositionalKnowledge.getDistanceToEnemy() <= agent.SHOOTING_DISTANCE;
+		return /*relationalKnowledge.enemyOnPath(space, ship, interceptPosition) 
+					&&*/ propositionalKnowledge.getDistanceToEnemy() <= agent.SHOOTING_DISTANCE;
 	}
 	
 	/** 
@@ -602,7 +611,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private Position getInterceptPosition(Toroidal2DPhysics space, Position goalPosition, Position shipPosition, double velocity, int xMax, int yMax, String teamName) {
-		if (teamName.equalsIgnoreCase("FewSurvivorsTeamClient")) return goalPosition;
+		if (teamName.equalsIgnoreCase("NoSurvivorsTeamClient")) return goalPosition;
 		
 		double goalVelocityX = goalPosition.getTranslationalVelocityX();
 		double goalVelocityY = goalPosition.getTranslationalVelocityY();
@@ -636,7 +645,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			log("\tgoalVelocityX: " + goalVelocityX + "\n\tgoalVelocityY: " + goalVelocityY + "\n\trelativePositionX: " + 
 					relativePositionX + "\n\trelativePositionY: " + relativePositionY + "\n\ta: " + a + "\n\tb: " + b + 
 					"\n\tc: " + c + "\n\tquadraticTemp: " + quadraticTemp + "\n\ttestSign: " + testSign + 
-					"\n\ttimeToIntercept: " + timeToIntercept + "\n\tx: " + x + "\t\ny: " + y);
+					"\n\ttimeToIntercept: " + timeToIntercept + "\n\tx: " + x + "\n\ty: " + y);
 			return goalPosition;
 		}
 		
@@ -644,12 +653,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 
 	/**
-	 * Convenience method to move at a higher velocity than other ships. This is
-	 * done by essentially multiplying the distance vector by a certain scale,
-	 * and aiming for a "ghost object" at the new position, which causes the
-	 * ship to move more quickly. Adjustments are made to the scale when new
-	 * positions go off the map, which would otherwise cause erratic behavior.
-	 * 
+	 * Convenience method to move at a higher velocity than other ships.
 	 * 
 	 * @param space Current space instance
 	 * @param goalObject Object toward which we are moving
@@ -658,9 +662,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 */
 	private AbstractAction fasterMoveToObjectAction(Toroidal2DPhysics space, AbstractObject goalObject, Ship ship) {
 		currentGoalObject.put(ship.getId(), goalObject);
-		
-		if (propositionalKnowledge == null) log("prop knowledge null");
-		if (goalObject == null) log("goalObject null");
 		
 		// Next node we are targeting on the path
 		Position targetPosition = currentPath.get(ship.getId()) != null && !currentPath.get(ship.getId()).isEmpty() && 
@@ -919,25 +920,26 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 						Ship ship = (Ship) actionableObject;
 						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY.getPowerupMap())) {
 							purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY);
-							log(ship.getTeamName() + " is upgrading weapon capacity");
+							log(ship.getTeamName() + " is upgrading weapon capacity for ship: " + ship.getId());
+							log("weapon capacity is now: " + ship.getWeaponCapacity());
 						}
 					}
 				}
 			}
 			
 			// can we buy EMP?
-			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_EMP_LAUNCHER, resourcesAvailable)) {
-				for (AbstractActionableObject actionableObject : actionableObjects) {
-					if (actionableObject instanceof Ship) {
-						Ship ship = (Ship) actionableObject;
-						
-						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_EMP_LAUNCHER.getPowerupMap())) {
-							purchases.put(ship.getId(), PurchaseTypes.POWERUP_EMP_LAUNCHER);
-							log(ship.getTeamName() + " is buying an EMP launcher");
-						}
-					}
-				}		
-			}
+//			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_EMP_LAUNCHER, resourcesAvailable)) {
+//				for (AbstractActionableObject actionableObject : actionableObjects) {
+//					if (actionableObject instanceof Ship) {
+//						Ship ship = (Ship) actionableObject;
+//						
+//						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_EMP_LAUNCHER.getPowerupMap())) {
+//							purchases.put(ship.getId(), PurchaseTypes.POWERUP_EMP_LAUNCHER);
+//							log(ship.getTeamName() + " is buying an EMP launcher");
+//						}
+//					}
+//				}		
+//			}
 		}
 		
 		return purchases;
