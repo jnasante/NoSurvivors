@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 
-import javafx.geometry.Pos;
 import spacesettlers.objects.Asteroid;
 import spacesettlers.objects.Base;
 import spacesettlers.objects.Beacon;
@@ -415,16 +414,17 @@ public class RelationalRepresentation {
 			double degree2 = Math.toDegrees(Math.atan2(yDist2, xDist2));
 			double radian2 = -((-degree2)*Math.PI/180);
 			
-			// check that it is not a pi/-pi overlap			
+			// check that it is not a pi/-pi overlap
+			double allowanceAdjustment = (0.1*Math.PI);
 			if (radian1*radian2 > 0 || Math.max(radian1, radian2) < Math.PI/2) {
 				// check that our ship’s orientation lies between the radians
-				if((orientation <= Math.max(radian1, radian2)) && (orientation >= Math.min(radian1, radian2))) {
+				if((orientation <= Math.max(radian1, radian2) + allowanceAdjustment) && (orientation >= Math.min(radian1, radian2) - allowanceAdjustment)) {
 					// enemy is on path
 					return true;
 				}
 			} else {
 				// check that our ship’s orientation lies between the radians that involve pi/-pi overlap
-				if((orientation >= Math.max(radian1, radian2)) && (orientation <= Math.min(radian1, radian2))) {
+				if((orientation >= Math.max(radian1, radian2) - allowanceAdjustment) && (orientation <= Math.min(radian1, radian2) + allowanceAdjustment)) {
 					// enemy is on path
 					return true;
 				}
