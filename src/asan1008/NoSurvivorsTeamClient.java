@@ -254,7 +254,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 
 	/**
-	 * Gets the action for the our aggressive ship, setting priorities in the
+	 * Gets the action for the our aggressive ships, setting priorities in the
 	 * order: 1) Buying weapon or health upgrades 3) Targeting enemy ships
 	 * 
 	 * @param space Current space instance
@@ -493,6 +493,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	
 	/**
 	 * Follow an aStar path to the goal
+	 * 
 	 * @param space
 	 * @param ship
 	 * @param goalPosition
