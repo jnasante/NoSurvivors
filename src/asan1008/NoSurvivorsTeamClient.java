@@ -19,7 +19,6 @@ import java.util.UUID;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
 
-import javafx.geometry.Pos;
 import spacesettlers.actions.AbstractAction;
 import spacesettlers.actions.DoNothingAction;
 import spacesettlers.actions.PurchaseCosts;
@@ -111,6 +110,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				if(propositionalKnowledge.shouldPlan()) {
 					//log("should plan");
 					if (currentGoalObject != null) {
+						
 						getAStarPathToGoal(space, ship, currentGoalObject.get(ship.getId()).getPosition());
 					}
 				}
@@ -511,8 +511,12 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 		// Get obstructions
 		HashSet<AbstractObject> obstructions = new HashSet<AbstractObject>();
-		for(AbstractObject object : space.getAllObjects()){
-			if(object instanceof Beacon || object.getId() == currentGoalObject.get(ship.getId()).getId() || object.getId() == ship.getId()){
+		for(AbstractObject object : space.getAllObjects()) {
+			if(object instanceof Beacon || 
+					object instanceof Missile ||
+					object instanceof Asteroid && ((Asteroid) object).isMineable() ||
+					object.getId() == currentGoalObject.get(ship.getId()).getId() || 
+					object.getId() == ship.getId()) {
 				continue;
 			}
 			obstructions.add(object);
@@ -600,8 +604,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {
 		Position enemyPosition = relationalKnowledge.getCurrentTargetEnemy(ship) != null ? relationalKnowledge.getCurrentTargetEnemy(ship).getPosition() : null;
 		Position interceptPosition = enemyPosition != null ? getInterceptPosition(space, enemyPosition, ship.getPosition(), Missile.INITIAL_VELOCITY, space.getWidth(), space.getHeight(), ship.getTeamName()) : null;
-		return /*relationalKnowledge.enemyOnPath(space, ship, interceptPosition) 
-					&&*/ propositionalKnowledge.getDistanceToEnemy() <= agent.SHOOTING_DISTANCE;
+		return relationalKnowledge.enemyOnPath(space, ship, interceptPosition) 
+					&& propositionalKnowledge.getDistanceToEnemy() <= agent.SHOOTING_DISTANCE;
 	}
 	
 	/** 
@@ -618,32 +622,28 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		if(goalVelocityX == 0 && goalVelocityY == 0) {
 			return goalPosition;
 		}
-		
-		double relativePositionX = goalPosition.getX() - shipPosition.getX();
-		double relativePositionY = goalPosition.getY() - shipPosition.getY();
-		double a = Math.pow(goalVelocityX, 2) + Math.pow(goalVelocityY, 2) - Math.pow(velocity, 2);
-		double b = 2*(relativePositionX*relativePositionY + goalVelocityX*goalVelocityY);
-		double c = Math.pow(relativePositionX, 2) + Math.pow(relativePositionY, 2);
+		double goalSpeed = Math.sqrt(Math.pow(goalVelocityX, 2) + Math.pow(goalVelocityY, 2));
+		Vector2D relativePosition = space.findShortestDistanceVector(shipPosition, goalPosition);
+		double postitionNorm = Math.sqrt(Math.pow(relativePosition.getXValue(), 2) + Math.pow(relativePosition.getYValue(), 2));
+		Vector2D normalizedRelative = new Vector2D(relativePosition.getXValue()/postitionNorm, relativePosition.getYValue()/postitionNorm);
+		Vector2D normalizedVelocity = new Vector2D(goalVelocityX/goalSpeed, goalVelocityY/goalSpeed);
+		double cosTheta = normalizedRelative.getXValue()*normalizedVelocity.getXValue() + normalizedRelative.getYValue()*normalizedVelocity.getYValue();
+		double distance = space.findShortestDistance(goalPosition, shipPosition);
+		double a = Math.pow(velocity, 2) - Math.pow(goalSpeed, 2);
+		double b = 2 * goalSpeed * distance * cosTheta;
+		double c = -Math.pow(distance, 2);
 		double quadraticTemp = Math.sqrt(Math.pow(b, 2) - 4*a*c);
 		double testSign = (-b + quadraticTemp)/(2*a);
 		double timeToIntercept = ( testSign > 0 ) ? testSign : (-b - quadraticTemp)/(2*a);
 		double x = (goalPosition.getX() + timeToIntercept*goalVelocityX) % xMax;
 		double y = (goalPosition.getY() + timeToIntercept*goalVelocityY) % yMax;
 		
-		// TODO: This is still not quite right. It struggles with crossing borders.
-		
-		if (x < 0) {
-			x += xMax;
-		}
-		
-		if (y < 0) {
-			y += yMax;
-		}
-		
 		if (Double.isNaN(x) || Double.isNaN(y)) {
 			log("Avoided wormhole!");
-			log("\tgoalVelocityX: " + goalVelocityX + "\n\tgoalVelocityY: " + goalVelocityY + "\n\trelativePositionX: " + 
-					relativePositionX + "\n\trelativePositionY: " + relativePositionY + "\n\ta: " + a + "\n\tb: " + b + 
+			log("\tgoalPositionX: " + goalPosition.getX() + "\n\tgoalPositionY: " + goalPosition.getY() + 
+					"\tshipPositionX: " + shipPosition.getX() + "\n\tshipPositionY: " + shipPosition.getY() + 
+					"\n\trelativePositionX: " + 
+					relativePosition.getXValue() + "\n\trelativePositionY: " + relativePosition.getYValue() + "\n\ta: " + a + "\n\tb: " + b + 
 					"\n\tc: " + c + "\n\tquadraticTemp: " + quadraticTemp + "\n\ttestSign: " + testSign + 
 					"\n\ttimeToIntercept: " + timeToIntercept + "\n\tx: " + x + "\n\ty: " + y);
 			return goalPosition;
@@ -676,9 +676,13 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		
 		if (ship.getEnergy() < agent.LOW_ENERGY) {
 			VELOCITY_MAGNITUDE = agent.SPEED_SLOW;
-		} else if (goalObject instanceof Base && space.findShortestDistance(ship.getPosition(), goalObject.getPosition()) < agent.SHORT_DISTANCE) {  
+		}
+		
+		if (goalObject instanceof Base && space.findShortestDistance(ship.getPosition(), goalObject.getPosition()) < agent.SHORT_DISTANCE) {  
 			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_BASE_ARRIVAL;
-		} else if (!pathClear) {
+		} 
+		
+		if (!pathClear) {
 			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_NAVIGATION;
 		}
 				
