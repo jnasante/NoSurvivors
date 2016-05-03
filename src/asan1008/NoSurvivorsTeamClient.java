@@ -327,7 +327,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 		if (relationalKnowledge.getNearestBeacon(ship) != null) {
 			if (isBeaconMoreConvenientThanBase(ship)) {
-				return goToBeacon(space, ship);
+				return getBeacon(space, ship);
 			}
 		}
 
@@ -342,7 +342,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @param ship
 	 * @return
 	 */
-	private AbstractAction goToBeacon(Toroidal2DPhysics space, Ship ship) {
+	private AbstractAction getBeacon(Toroidal2DPhysics space, Ship ship) {
 		setShouldShoot(ship, false);
 		if (relationalKnowledge.getNearestBeacon(ship) != null) {
 			relationalKnowledge.setCurrentTargetBeacon(relationalKnowledge.getNearestBeacon(ship), ship);
