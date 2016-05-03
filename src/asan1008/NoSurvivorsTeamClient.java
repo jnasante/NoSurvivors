@@ -50,6 +50,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	HashMap<UUID, ArrayList<SpacewarGraphics>> graphicsToAdd;
 	HashMap<UUID, LinkedList<Vertex>> currentPath;
 	HashMap<UUID, AbstractObject> currentGoalObject;
+	HashMap<UUID, Position> interceptPosition;
 	HashMap <UUID, Graph> graphByShip;
 	HashMap<UUID, Boolean> shipDied;
 	ResourceDelivery resourceDelivery;
@@ -89,7 +90,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				if (asteroidCollectorIDs.size() < 2 ) {
 					if( !asteroidCollectorIDs.contains(ship.getId())){
 						asteroidCollectorIDs.add(ship.getId());
-						if (ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) log("Asteroid collector id: " + ship.getId());
+						//if (ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) log("Asteroid collector id: " + ship.getId());
 					}
 				}
 				
@@ -110,7 +111,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				if(propositionalKnowledge.shouldPlan()) {
 					//log("should plan");
 					if (currentGoalObject != null) {
-						
 						getAStarPathToGoal(space, ship, currentGoalObject.get(ship.getId()).getPosition());
 					}
 				}
@@ -139,14 +139,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private AbstractAction getNextAction(Toroidal2DPhysics space, Ship ship) {
-		if (Double.isNaN(ship.getPosition().getX())) {
-			log(ship.toString());
-			log(ship.getTeamName());
-			log(((FasterMoveToObjectAction)ship.getCurrentAction()).targetVelocity.toString());
-			log("" + space.getCurrentTimestep());
-			System.exit(0);
-		}
-
 		// Update current knowledge of the environment
 		relationalKnowledge.updateRepresentation(space, ship);
 		propositionalKnowledge.updateRepresentation(relationalKnowledge, space, ship);
@@ -218,34 +210,11 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			newAction = goHeal(space, ship);
 			if (newAction != null) return newAction;
 		}
-
-		// TODO: Refactor this
-		for (double radius = propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS; radius <= propositionalKnowledge.MAXIMUM_ASTEROID_SEARCH_RADIUS; radius += 100) {
-			Asteroid asteroid = relationalKnowledge.findHighestValueAsteroidWithinRadius(space, ship, radius);
-			if (asteroid != null && relationalKnowledge.getCurrentTargetAsteroid(ship) == null) {
-				if (resourceDelivery.predictSurvivalProbability(ship.getEnergy(),
-						space.findShortestDistance(ship.getPosition(), asteroid.getPosition()),
-						space.findShortestDistance(asteroid.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()),
-						space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition())) > propositionalKnowledge.ASTEROID_COLLECTION_PROBABILITY_THRESHOLD) {
-
-					// We will probably survive the trip if we go for another asteroid.
-					setShouldShoot(ship, false);
-					relationalKnowledge.setCurrentTargetAsteroid(asteroid, ship);
-					newAction = fasterMoveToObjectAction(space, asteroid, ship);
-					return newAction;
-				} else {
-					// We probably won't survive going for another asteroid. Go back to base to deposit what we have and heal.
-					newAction = goHome(space, ship);
-					if (newAction != null) return newAction;
-				}
-			} else {
-				if(relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
-					newAction = fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetAsteroid(ship), ship);
-					return newAction;
-				}
-			}
-		}
 		
+		// Go mining (new or target asteroid)
+		newAction = goMining(space, ship);
+		if (newAction != null) return newAction;
+
 		// If can't find a nearby asteroid, just go home
 		newAction = goHome(space, ship);
 		if (newAction != null) return newAction;
@@ -279,12 +248,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		newAction = goHome(space, ship);
 		if (newAction != null) return newAction;
 
-		// If for some reason we can't go home, go mining!
-		// This is the only time an aggressive ship goes for an asteroid.
-		// TODO: perhaps this should be above going home if we are near asteroids?
-		newAction = goMiningNearby(space, ship);
-		if (newAction != null) return newAction;
-		
 		// Do nothing if we cannot determine a new action
 		ship.setCurrentAction(null);
 		return new DoNothingAction();
@@ -297,17 +260,31 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @param ship
 	 * @return
 	 */
-	private AbstractAction goMiningNearby(Toroidal2DPhysics space, Ship ship) {
+	private AbstractAction goMining(Toroidal2DPhysics space, Ship ship) {
 		setShouldShoot(ship, false);
-				
-		// Go after current target asteroid, if we have one
-		if (relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
-			return fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetAsteroid(ship), ship);
-		}
-		
-		// Go for new asteroid (if one exists)
-		if (relationalKnowledge.getNearestAsteroid(ship) != null) {
-			return fasterMoveToObjectAction(space, relationalKnowledge.getNearestAsteroid(ship), ship);
+
+		// Search within radius of base for asteroids. If none found, expand radius, until max radius is reached.
+		for (double radius = propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS; radius <= propositionalKnowledge.MAXIMUM_ASTEROID_SEARCH_RADIUS; radius += 100) {
+			Asteroid asteroid = relationalKnowledge.findHighestValueAsteroidWithinRadius(space, ship, radius);
+			if (asteroid != null && relationalKnowledge.getCurrentTargetAsteroid(ship) == null) {
+				if (resourceDelivery.predictSurvivalProbability(ship.getEnergy(),
+						space.findShortestDistance(ship.getPosition(), asteroid.getPosition()),
+						space.findShortestDistance(asteroid.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()),
+						space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition())) > propositionalKnowledge.ASTEROID_COLLECTION_PROBABILITY_THRESHOLD) {
+
+					// We will probably survive the trip if we go for another asteroid.
+					setShouldShoot(ship, false);
+					relationalKnowledge.setCurrentTargetAsteroid(asteroid, ship);
+					return fasterMoveToObjectAction(space, asteroid, ship);
+				} else {
+					// We probably won't survive going for another asteroid. Go back to base to deposit what we have and heal.
+					return goHome(space, ship);
+				}
+			} else {
+				if(relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
+					return fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetAsteroid(ship), ship);
+				}
+			}
 		}
 
 		return null;
@@ -500,46 +477,64 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private void getAStarPathToGoal(Toroidal2DPhysics space, Ship ship, Position goalPosition) {
-		// Determine target velocity
-		double targetVelocity = Missile.INITIAL_VELOCITY;
-		if (isAsteroidCollector(ship)) {
-			targetVelocity = ship.getEnergy() < agent.LOW_ENERGY ? agent.SPEED_SLOW : agent.SPEED_FAST;
-		}
-		
-		// Calculate intercept position
-		Position interceptPosition = getInterceptPosition(space, currentGoalObject.get(ship.getId()).getPosition(), ship.getPosition(), 
-				targetVelocity, space.getWidth(), space.getHeight(), ship.getTeamName());
-
-		// Get obstructions
-		HashSet<AbstractObject> obstructions = new HashSet<AbstractObject>();
-		for(AbstractObject object : space.getAllObjects()) {
-			if(object instanceof Beacon || 
-					object instanceof Missile ||
-					object instanceof Asteroid && ((Asteroid) object).isMineable() ||
-					object.getId() == currentGoalObject.get(ship.getId()).getId() || 
-					object.getId() == ship.getId()) {
-				continue;
-			}
-			obstructions.add(object);
-		}
-		
 		// If path is clear of obstructions, don't use A*
-		pathClear = !shouldUseAStar || space.isPathClearOfObstructions(ship.getPosition(), interceptPosition, obstructions, 10);
+		pathClear = !shouldUseAStar || space.isPathClearOfObstructions(ship.getPosition(), interceptPosition.get(ship.getId()), getObstructions(space, ship), 10);
+		if (interceptPosition.get(ship.getId()) == null) log("bull");
 		if (!pathClear) {
 			Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random());
 			currentPath.put(ship.getId(), graph.findAStarPath(space));
 		} else {
 			if (currentPath.get(ship.getId()) != null) {
-				 currentPath.get(ship.getId()).clear(); 
+				 currentPath.get(ship.getId()).clear();
 			} else {
 				currentPath.put(ship.getId(), new LinkedList<Vertex>());
 			}
 			
-			currentPath.get(ship.getId()).add(new Vertex(interceptPosition));
+			currentPath.get(ship.getId()).add(new Vertex(interceptPosition.get(ship.getId())));
 		}
 		
 		/* Draw path as planning takes place */
 		if (currentPath.get(ship.getId()) != null) graphicsToAdd.put(ship.getId(), drawPath(currentPath.get(ship.getId()), space, ship));
+	}
+	
+	/**
+	 * Get all objects we consider obstructions
+	 * 
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
+	private Set<AbstractObject> getObstructions(Toroidal2DPhysics space, Ship ship) {
+		Set<AbstractObject> obstructions = new HashSet<AbstractObject>();
+		
+		// don't add an asteroid if it is the goal, or if it is mineable and we want to hit them
+		for (Asteroid asteroid : space.getAsteroids()) {
+			if (asteroid.isMineable() || asteroid.getId() == currentGoalObject.get(ship.getId()).getId()) {
+				continue;
+			}
+			
+			obstructions.add(asteroid);
+		}
+		
+		// Avoid all ships except current ship
+		for (Ship otherShip : space.getShips()) {
+			if (otherShip.getId() == ship.getId() || otherShip.getId() == currentGoalObject.get(ship.getId()).getId()) {
+				continue;
+			}
+			
+			obstructions.add(otherShip);
+		}
+		
+		// Avoid all bases
+		for (Base base : space.getBases()) {
+			if (base.getId() == currentGoalObject.get(ship.getId()).getId()) {
+				continue;
+			}
+
+			obstructions.add(base);
+		}
+		
+		return obstructions;
 	}
 	
 	/**
@@ -603,9 +598,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private boolean shouldShootAtEnemy(Toroidal2DPhysics space, Ship ship) {
-		Position enemyPosition = relationalKnowledge.getCurrentTargetEnemy(ship) != null ? relationalKnowledge.getCurrentTargetEnemy(ship).getPosition() : null;
-		Position interceptPosition = enemyPosition != null ? getInterceptPosition(space, enemyPosition, ship.getPosition(), Missile.INITIAL_VELOCITY, space.getWidth(), space.getHeight(), ship.getTeamName()) : null;
-		return relationalKnowledge.enemyOnPath(space, ship, interceptPosition) 
+		Position enemyActualPosition = relationalKnowledge.getCurrentTargetEnemy(ship) != null ? relationalKnowledge.getCurrentTargetEnemy(ship).getPosition() : null;
+		Position enemyInterceptPosition = enemyActualPosition != null ? interceptPosition.get(ship.getId()) : null;
+		return relationalKnowledge.enemyOnPath(space, ship, enemyInterceptPosition) 
 					&& propositionalKnowledge.getDistanceToEnemy() <= agent.SHOOTING_DISTANCE;
 	}
 	
@@ -616,7 +611,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	private Position getInterceptPosition(Toroidal2DPhysics space, Position goalPosition, Position shipPosition, double velocity, int xMax, int yMax, String teamName) {
-		if (teamName.equalsIgnoreCase("NoSurvivorsTeamClient")) return goalPosition;
+		if (!teamName.equalsIgnoreCase("NoSurvivorsTeamClient")) return goalPosition;
 		
 		double goalVelocityX = goalPosition.getTranslationalVelocityX();
 		double goalVelocityY = goalPosition.getTranslationalVelocityY();
@@ -639,16 +634,16 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		double x = (goalPosition.getX() + timeToIntercept*goalVelocityX) % xMax;
 		double y = (goalPosition.getY() + timeToIntercept*goalVelocityY) % yMax;
 		
-		if (Double.isNaN(x) || Double.isNaN(y)) {
-			log("Avoided wormhole!");
-			log("\tgoalPositionX: " + goalPosition.getX() + "\n\tgoalPositionY: " + goalPosition.getY() + 
-					"\tshipPositionX: " + shipPosition.getX() + "\n\tshipPositionY: " + shipPosition.getY() + 
-					"\n\trelativePositionX: " + 
-					relativePosition.getXValue() + "\n\trelativePositionY: " + relativePosition.getYValue() + "\n\ta: " + a + "\n\tb: " + b + 
-					"\n\tc: " + c + "\n\tquadraticTemp: " + quadraticTemp + "\n\ttestSign: " + testSign + 
-					"\n\ttimeToIntercept: " + timeToIntercept + "\n\tx: " + x + "\n\ty: " + y);
-			return goalPosition;
-		}
+//		if (Double.isNaN(x) || Double.isNaN(y)) {
+//			log("Avoided wormhole!");
+//			log("\tgoalPositionX: " + goalPosition.getX() + "\n\tgoalPositionY: " + goalPosition.getY() + 
+//					"\n\tshipPositionX: " + shipPosition.getX() + "\n\tshipPositionY: " + shipPosition.getY() + 
+//					"\n\trelativePositionX: " + 
+//					relativePosition.getXValue() + "\n\trelativePositionY: " + relativePosition.getYValue() + "\n\ta: " + a + "\n\tb: " + b + 
+//					"\n\tc: " + c + "\n\tquadraticTemp: " + quadraticTemp + "\n\ttestSign: " + testSign + 
+//					"\n\ttimeToIntercept: " + timeToIntercept + "\n\tx: " + x + "\n\ty: " + y);
+//			return goalPosition;
+//		}
 		
 		return new Position(x, y);
 	}
@@ -663,14 +658,16 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 */
 	private AbstractAction fasterMoveToObjectAction(Toroidal2DPhysics space, AbstractObject goalObject, Ship ship) {
 		currentGoalObject.put(ship.getId(), goalObject);
-		
-		// Next node we are targeting on the path
-		Position targetPosition = currentPath.get(ship.getId()) != null && !currentPath.get(ship.getId()).isEmpty() && 
-				space.findShortestDistance(propositionalKnowledge.getCurrentPosition(), goalObject.getPosition()) > agent.SHORT_DISTANCE ? 
-			currentPath.get(ship.getId()).getLast().getPosition() : goalObject.getPosition();
-		
-		// Distance to target position
-		Vector2D distance = space.findShortestDistanceVector(propositionalKnowledge.getCurrentPosition(), targetPosition);
+
+		// Calculate target intercept position
+		if (propositionalKnowledge.shouldRecalculateIntercept() || interceptPosition.get(ship.getId()) == null) {
+			double targetInterceptVelocity = Missile.INITIAL_VELOCITY;
+			if (isAsteroidCollector(ship)) {
+				targetInterceptVelocity = ship.getEnergy() < agent.LOW_ENERGY ? agent.SPEED_SLOW : agent.SPEED_FAST;
+			}
+			
+			interceptPosition.put(ship.getId(), getInterceptPosition(space, goalObject.getPosition(), ship.getPosition(), targetInterceptVelocity, space.getWidth(), space.getHeight(), ship.getTeamName()));
+		}
 		
 		// The magnitude of our velocity vector. If we are dangerously low on energy, slow down
 		double VELOCITY_MAGNITUDE = agent.SPEED_FAST;
@@ -687,6 +684,14 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_NAVIGATION;
 		}
 				
+		// Next node we are targeting on the path
+		Position targetPosition = currentPath.get(ship.getId()) != null && !currentPath.get(ship.getId()).isEmpty() && 
+				space.findShortestDistance(propositionalKnowledge.getCurrentPosition(), interceptPosition.get(ship.getId())) > agent.SHORT_DISTANCE ? 
+			currentPath.get(ship.getId()).getLast().getPosition() : interceptPosition.get(ship.getId());
+		
+		// Distance to target position
+		Vector2D distance = space.findShortestDistanceVector(propositionalKnowledge.getCurrentPosition(), targetPosition);
+		
 		Vector2D targetVelocity;
 		
 		// If we are within shooting distance of enemy, slow down and attack!
@@ -711,8 +716,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		// Asteroid coordination
 		if (goalObject instanceof Asteroid) {
 			resourceDelivery.setValues(ship.getEnergy(), 
-					space.findShortestDistance(ship.getPosition(), goalObject.getPosition()), 
-					space.findShortestDistance(goalObject.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()), 
+					space.findShortestDistance(ship.getPosition(), interceptPosition.get(ship.getId())), 
+					space.findShortestDistance(interceptPosition.get(ship.getId()), relationalKnowledge.getNearestBase(ship).getPosition()), 
 					space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()));
 		}
 		
@@ -782,6 +787,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		graphicsToAdd = new HashMap<UUID, ArrayList<SpacewarGraphics>>();
 		currentPath = new HashMap<UUID, LinkedList<Vertex>>();
 		currentGoalObject = new HashMap<UUID, AbstractObject>();
+		interceptPosition = new HashMap<UUID, Position>();
 		graphByShip = new HashMap<UUID, Graph>();
 		shipDied = new HashMap<UUID, Boolean>();
 		shouldShoot = new HashMap<UUID, Boolean>();
@@ -910,7 +916,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				if (actionableObject instanceof Base) {
 					Base base = (Base) actionableObject;
 					purchases.put(base.getId(), PurchaseTypes.SHIP);
-					log(base.getTeamName() + " is increasing the size of its army");
+					//log(space.getCurrentTimestep() + "\t" + base.getTeamName() + " is increasing the size of its army");
 					break;
 				}
 			}
@@ -925,26 +931,25 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 						Ship ship = (Ship) actionableObject;
 						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY.getPowerupMap())) {
 							purchases.put(ship.getId(), PurchaseTypes.POWERUP_DOUBLE_WEAPON_CAPACITY);
-							log(ship.getTeamName() + " is upgrading weapon capacity for ship: " + ship.getId());
-							log("weapon capacity is now: " + ship.getWeaponCapacity());
+							//log(space.getCurrentTimestep() + "\t" + ship.getTeamName() + " is upgrading weapon capacity for ship: " + ship.getId());
 						}
 					}
 				}
 			}
 			
 			// can we buy EMP?
-//			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_EMP_LAUNCHER, resourcesAvailable)) {
-//				for (AbstractActionableObject actionableObject : actionableObjects) {
-//					if (actionableObject instanceof Ship) {
-//						Ship ship = (Ship) actionableObject;
-//						
-//						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_EMP_LAUNCHER.getPowerupMap())) {
-//							purchases.put(ship.getId(), PurchaseTypes.POWERUP_EMP_LAUNCHER);
-//							log(ship.getTeamName() + " is buying an EMP launcher");
-//						}
-//					}
-//				}		
-//			}
+			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_EMP_LAUNCHER, resourcesAvailable)) {
+				for (AbstractActionableObject actionableObject : actionableObjects) {
+					if (actionableObject instanceof Ship) {
+						Ship ship = (Ship) actionableObject;
+						
+						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_EMP_LAUNCHER.getPowerupMap())) {
+							purchases.put(ship.getId(), PurchaseTypes.POWERUP_EMP_LAUNCHER);
+							//log(space.getCurrentTimestep() + "\t" + ship.getTeamName() + " is buying an EMP launcher");
+						}
+					}
+				}		
+			}
 		}
 		
 		return purchases;

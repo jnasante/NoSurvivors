@@ -4,9 +4,9 @@
 	<classname>asan1008.NoSurvivorsTeamClient</classname>
 	
 	<!-- You can choose the color your team's ships will be on the screen.  Specify the red, green, and blue components -->
-	<teamColorRed>252</teamColorRed>
-	<teamColorGreen>252</teamColorGreen>
-	<teamColorBlue>252</teamColorBlue>
+	<teamColorRed>232</teamColorRed>
+	<teamColorGreen>229</teamColorGreen>
+	<teamColorBlue>21</teamColorBlue>
 	
 	<!-- The name that shows up in the ladder -->
 	<ladderName>Test Client</ladderName>

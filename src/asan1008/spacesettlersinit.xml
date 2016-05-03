@@ -9,7 +9,7 @@
 	<teamColorBlue>206</teamColorBlue>
 	
 	<!-- The name that shows up in the ladder -->
-	<ladderName>bang bang, an aggressive haiku by joseph and aric: bang bang it rings out - another one meets its end - no survivors left</ladderName>
+	<ladderName>Y'all know us, still the same OGs, but we been low key. Hated on by most these students with no shield, no base, and no G's, no bullets and no kills, no health, no damage dealt and low scores. Mad at me, cause I can finally provide my team with a win in Spacewars. - Joseph and Aric (ft. Dr. Dre), Chronic 2001</ladderName>
 	
 	<!-- The number of ships in the team.  Note, if this is bigger than the maximum number of allowable ships per team, it is ignored -->
 	<numberInitialShipsInTeam>2</numberInitialShipsInTeam>

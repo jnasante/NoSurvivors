@@ -374,11 +374,13 @@ public class RelationalRepresentation {
 	 * @return Boolean value for whether or not we should shoot
 	 */
 	public boolean enemyOnPath(Toroidal2DPhysics space, Ship ship, Position predictedEnemyPosition) {
+		if (!ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) return true;
+		
 		// prepare the necessary variables for the algorithm
 		double shipX = ship.getPosition().getX();
 		double shipY = ship.getPosition().getY();
 		double orientation = ship.getPosition().getOrientation();
-		if( predictedEnemyPosition != null || currentTargetEnemy.get(ship.getId()) != null ) {
+		if( predictedEnemyPosition != null && currentTargetEnemy.get(ship.getId()) != null ) {
 			double radius = Ship.SHIP_RADIUS;
 			double enemyX = predictedEnemyPosition.getX();
 			double enemyY = predictedEnemyPosition.getY();
@@ -415,7 +417,7 @@ public class RelationalRepresentation {
 			double radian2 = -((-degree2)*Math.PI/180);
 			
 			// check that it is not a pi/-pi overlap
-			double allowanceAdjustment = (0.1*Math.PI);
+			double allowanceAdjustment = (0.2*2*Math.PI);
 			if (radian1*radian2 > 0 || Math.max(radian1, radian2) < Math.PI/2) {
 				// check that our ship’s orientation lies between the radians
 				if((orientation <= Math.max(radian1, radian2) + allowanceAdjustment) && (orientation >= Math.min(radian1, radian2) - allowanceAdjustment)) {

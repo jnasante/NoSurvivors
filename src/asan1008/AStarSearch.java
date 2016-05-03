@@ -112,7 +112,7 @@ public class AStarSearch  {
 		double randomCoord = random.nextFloat() * (max - min) + min;
 		return randomCoord % boundary;
 	}
-
+	
 	/**
 	 * creates a graph of random locations plus the starting position and each of the beacons
 	 * 

@@ -26,8 +26,9 @@ public class PropositionalRepresentation {
 	public final int SPEED_BASE_ARRIVAL = 5;
 	public final int SPEED_CHEAT_DEATH = Integer.MAX_VALUE;
 	public final int PLANNING_FREQUENCY = 20;
+	public final int CALCULATE_INTERCEPT_FREQUENCY = 10;
 	public final int LOW_BASE_ENERGY = 1000;
-	public final int CRITICAL_HEALTH = 200;
+	public final int CRITICAL_HEALTH = 250;
 	public final double MINIMUM_ASTEROID_SEARCH_RADIUS = 350;
 	public final double MAXIMUM_ASTEROID_SEARCH_RADIUS = 800;
 	public final double ASTEROID_COLLECTION_PROBABILITY_THRESHOLD = 0.3;
@@ -98,7 +99,16 @@ public class PropositionalRepresentation {
 	 * @return
 	 */
 	protected boolean shouldPlan() {
-		return (tick % PLANNING_FREQUENCY == 0) ? true : false;
+		return (tick % PLANNING_FREQUENCY == 1) ? true : false;
+	}
+	
+	/**
+	 * Determine whether or not to recalculate intercept position on the current time step
+	 * 
+	 * @return
+	 */
+	protected boolean shouldRecalculateIntercept() {
+		return (tick % CALCULATE_INTERCEPT_FREQUENCY == 0) ? true : false;
 	}
 	
 	/**
