@@ -45,6 +45,10 @@
 			<teamName>FewSurvivorsTeamClient</teamName>
 			<configFile>agent1init.xml</configFile>
 		</HighLevelTeamConfig>
+		<HighLevelTeamConfig>
+			<teamName>SomeSurvivorsTeamClient</teamName>
+			<configFile>agent2init.xml</configFile>
+		</HighLevelTeamConfig>
 	</variableTeams>
 
 </LadderConfig>

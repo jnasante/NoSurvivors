@@ -86,7 +86,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 //				}
 				
 				// the first time we initialize, decide which ship is the asteroid collector
-				if (asteroidCollectorIDs.size() < 2 ) {
+				if (asteroidCollectorIDs.size() < 2 && ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) {
 					if( !asteroidCollectorIDs.contains(ship.getId())){
 						asteroidCollectorIDs.add(ship.getId());
 						//if (ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) log("Asteroid collector id: " + ship.getId());
@@ -917,8 +917,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			for (AbstractActionableObject actionableObject : actionableObjects) {
 				if (actionableObject instanceof Base) {
 					Base base = (Base) actionableObject;
+					if (!base.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) break;
 					purchases.put(base.getId(), PurchaseTypes.SHIP);
-					//log(space.getCurrentTimestep() + "\t" + base.getTeamName() + " is increasing the size of its army");
+					log(space.getCurrentTimestep() + "\t" + base.getTeamName() + " is increasing the size of its army");
 					break;
 				}
 			}
