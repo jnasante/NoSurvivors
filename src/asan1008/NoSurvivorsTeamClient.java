@@ -610,8 +610,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @param space
 	 * @return
 	 */
-	private Position getInterceptPosition(Toroidal2DPhysics space, Position goalPosition, Position shipPosition, double velocity, int xMax, int yMax, String teamName) {
-		if (!teamName.equalsIgnoreCase("NoSurvivorsTeamClient")) return goalPosition;
+	private Position getInterceptPosition(Toroidal2DPhysics space, Position goalPosition, Ship ship, double velocity, int xMax, int yMax) {
+		if (!teamName.equalsIgnoreCase("NoSurvivorsTeamClient") || !isAsteroidCollector(ship)) return goalPosition;
 		
 		double goalVelocityX = goalPosition.getTranslationalVelocityX();
 		double goalVelocityY = goalPosition.getTranslationalVelocityY();
@@ -619,12 +619,12 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			return goalPosition;
 		}
 		double goalSpeed = Math.sqrt(Math.pow(goalVelocityX, 2) + Math.pow(goalVelocityY, 2));
-		Vector2D relativePosition = space.findShortestDistanceVector(shipPosition, goalPosition);
+		Vector2D relativePosition = space.findShortestDistanceVector(ship.getPosition(), goalPosition);
 		double postitionNorm = Math.sqrt(Math.pow(relativePosition.getXValue(), 2) + Math.pow(relativePosition.getYValue(), 2));
 		Vector2D normalizedRelative = new Vector2D(relativePosition.getXValue()/postitionNorm, relativePosition.getYValue()/postitionNorm);
 		Vector2D normalizedVelocity = new Vector2D(goalVelocityX/goalSpeed, goalVelocityY/goalSpeed);
 		double cosTheta = normalizedRelative.getXValue()*normalizedVelocity.getXValue() + normalizedRelative.getYValue()*normalizedVelocity.getYValue();
-		double distance = space.findShortestDistance(goalPosition, shipPosition);
+		double distance = space.findShortestDistance(goalPosition, ship.getPosition());
 		double a = Math.pow(velocity, 2) - Math.pow(goalSpeed, 2);
 		double b = 2 * goalSpeed * distance * cosTheta;
 		double c = -Math.pow(distance, 2);
@@ -666,7 +666,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				targetInterceptVelocity = ship.getEnergy() < agent.LOW_ENERGY ? agent.SPEED_SLOW : agent.SPEED_FAST;
 			}
 			
-			interceptPosition.put(ship.getId(), getInterceptPosition(space, goalObject.getPosition(), ship.getPosition(), targetInterceptVelocity, space.getWidth(), space.getHeight(), ship.getTeamName()));
+			interceptPosition.put(ship.getId(), getInterceptPosition(space, goalObject.getPosition(), ship, targetInterceptVelocity, space.getWidth(), space.getHeight()));
 		}
 		
 		// The magnitude of our velocity vector. If we are dangerously low on energy, slow down
