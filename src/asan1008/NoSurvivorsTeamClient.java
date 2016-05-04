@@ -31,7 +31,6 @@ import spacesettlers.objects.AbstractActionableObject;
 import spacesettlers.objects.AbstractObject;
 import spacesettlers.objects.Asteroid;
 import spacesettlers.objects.Base;
-import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
 import spacesettlers.objects.powerups.SpaceSettlersPowerupEnum;
 import spacesettlers.objects.resources.ResourcePile;
@@ -280,10 +279,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					// We probably won't survive going for another asteroid. Go back to base to deposit what we have and heal.
 					return goHome(space, ship);
 				}
-			} else {
-				if(relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
-					return fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetAsteroid(ship), ship);
-				}
+			} else if (relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
+				// If we have target, keep pursuing it
+				return fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetAsteroid(ship), ship);
 			}
 		}
 
@@ -336,7 +334,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 	
 	/**
-	 * Go to beacon
+	 * Go to nearest beacon (and set it as target so we don't deviate unless it dies or we die)
 	 * 
 	 * @param space
 	 * @param ship
@@ -371,6 +369,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 	
 	/**
+	 * Calculate if given position is in free space (with a buffer or ship's radius around it)
 	 * 
 	 * @param pos
 	 * @param space
@@ -705,7 +704,10 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_CHEAT_DEATH;
 				
 				// Generate random point, path to which is free
-				targetPosition = digOwnGrave(space, ship);
+				Position grave = digOwnGrave(space, ship);
+				if (grave != null) {
+					targetPosition = grave;
+				}
 			}
 			
 			// Scale by which to multiply our distance vectors to get the desired velocity magnitude
@@ -937,12 +939,11 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				}
 			}
 			
-			// can we buy EMP?
+			// can we buy EMP launcher?
 			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_EMP_LAUNCHER, resourcesAvailable)) {
 				for (AbstractActionableObject actionableObject : actionableObjects) {
 					if (actionableObject instanceof Ship) {
 						Ship ship = (Ship) actionableObject;
-						
 						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_EMP_LAUNCHER.getPowerupMap())) {
 							purchases.put(ship.getId(), PurchaseTypes.POWERUP_EMP_LAUNCHER);
 							//log(space.getCurrentTimestep() + "\t" + ship.getTeamName() + " is buying an EMP launcher");
@@ -964,26 +965,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return Map of UUID of actionable object to SpaceSettlersPowerupEnum
 	 */
 	@Override
-//	public Map<UUID, SpaceSettlersPowerupEnum> getPowerups(Toroidal2DPhysics space,
-//			Set<AbstractActionableObject> actionableObjects) {
-//		HashMap<UUID, SpaceSettlersPowerupEnum> powerUps = new HashMap<UUID, SpaceSettlersPowerupEnum>();
-//
-//		Random random = new Random();
-//		for (AbstractActionableObject actionableObject : actionableObjects) {
-//			if (!(actionableObject instanceof Ship)) {
-//				continue;
-//			}
-//			
-//			SpaceSettlersPowerupEnum powerup = SpaceSettlersPowerupEnum.values()[random
-//					.nextInt(SpaceSettlersPowerupEnum.values().length)];
-//			if (actionableObject.isValidPowerup(powerup) && random.nextDouble() < weaponsProbability && shouldShoot.get(actionableObject.getId()).booleanValue()) {
-//				powerUps.put(actionableObject.getId(), powerup);
-//			}
-//		}
-//
-//		return powerUps;
-//	}
-	
 	public Map<UUID, SpaceSettlersPowerupEnum> getPowerups(Toroidal2DPhysics space,
 			Set<AbstractActionableObject> actionableObjects) {
 		HashMap<UUID, SpaceSettlersPowerupEnum> powerUps = new HashMap<UUID, SpaceSettlersPowerupEnum>();

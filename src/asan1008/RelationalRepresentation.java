@@ -375,7 +375,6 @@ public class RelationalRepresentation {
 	 */
 	public boolean enemyOnPath(Toroidal2DPhysics space, Ship ship, Position predictedEnemyPosition) {
 		if (true) return true;
-		if (!ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) return true;
 		
 		// prepare the necessary variables for the algorithm
 		double shipX = ship.getPosition().getX();
