@@ -367,7 +367,7 @@ public class RelationalRepresentation {
 	 */
 	public List<Asteroid> findAsteroidsWithinRadius(Toroidal2DPhysics space, Ship ship, double radius) {
 		Set<Asteroid> asteroids = space.getAsteroids();
-		List<Asteroid> localAsteroids = new ArrayList<>();
+		List<Asteroid> localAsteroids = new ArrayList<Asteroid>();
 
 		for (Asteroid asteroid : asteroids) {
 			if (asteroid.isMineable() && 

@@ -304,8 +304,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				}
 			}
 		}
+		
 		// Return null if there is no sequence of actions that lead to the goal state
-		return null;
+		return chosenAsteroids;
 	}
 	
 	
@@ -336,8 +337,12 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		if (relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
 			return fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetAsteroid(ship), ship);
 		} else {
-			Asteroid targetAsteroid;
+			Asteroid targetAsteroid = null;
 			do {
+				if (asteroidPlan.get(ship.getId()) == null || asteroidPlan.get(ship.getId()).isEmpty()) {
+					break;
+				}
+				
 				targetAsteroid = asteroidPlan.get(ship.getId()).removeFirst();
 			} while ( (targetAsteroid == null || !targetAsteroid.isAlive()) && asteroidPlan.get(ship.getId()) != null && !asteroidPlan.get(ship.getId()).isEmpty() );
 			
