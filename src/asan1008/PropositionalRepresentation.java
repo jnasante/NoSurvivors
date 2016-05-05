@@ -26,6 +26,7 @@ public class PropositionalRepresentation {
 	public final int SPEED_BASE_ARRIVAL = 5;
 	public final int SPEED_CHEAT_DEATH = Integer.MAX_VALUE;
 	public final int PLANNING_FREQUENCY = 20;
+	public final int ASTEROID_PLANNING_FREQUENCY = 50;
 	public final int CALCULATE_INTERCEPT_FREQUENCY = 1;
 	public final int LOW_BASE_ENERGY = 1000;
 	public final int CRITICAL_HEALTH = 250;
@@ -112,6 +113,15 @@ public class PropositionalRepresentation {
 	}
 	
 	/**
+	 * Determine whether or not to replan asteroid collection on the current time step
+	 * 
+	 * @return
+	 */
+	protected boolean shouldPlanAsteroidCollection() {
+		return (tick % ASTEROID_PLANNING_FREQUENCY == 2) ? true : false;
+	}
+	
+	/**
 	 * Determine whether or not we should keep collecting asteroids based on 
 	 * the time step set on the agent's chromosome
 	 * 
@@ -121,4 +131,5 @@ public class PropositionalRepresentation {
 	protected boolean shouldCollectResources(double ASTEROID_COLLECTING_TIMESTEP) {
 		return (tick < ASTEROID_COLLECTING_TIMESTEP) ? true : false;
 	}
+	
 }

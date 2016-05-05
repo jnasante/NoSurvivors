@@ -31,7 +31,6 @@ import spacesettlers.objects.AbstractActionableObject;
 import spacesettlers.objects.AbstractObject;
 import spacesettlers.objects.Asteroid;
 import spacesettlers.objects.Base;
-import spacesettlers.objects.Beacon;
 import spacesettlers.objects.Ship;
 import spacesettlers.objects.powerups.SpaceSettlersPowerupEnum;
 import spacesettlers.objects.resources.ResourcePile;
@@ -39,6 +38,7 @@ import spacesettlers.objects.weapons.Missile;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 import spacesettlers.utilities.Vector2D;
+import sun.awt.image.ImageWatched.Link;
 
 /**
  * Aggressive client that leaves no survivors
@@ -49,6 +49,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	RelationalRepresentation relationalKnowledge;
 	HashMap<UUID, ArrayList<SpacewarGraphics>> graphicsToAdd;
 	HashMap<UUID, LinkedList<Vertex>> currentPath;
+	HashMap<UUID, LinkedList<Asteroid>> asteroidPlan;
 	HashMap<UUID, AbstractObject> currentGoalObject;
 	HashMap<UUID, Position> interceptPosition;
 	HashMap <UUID, Graph> graphByShip;
@@ -212,6 +213,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		}
 		
 		// Go mining (new or target asteroid)
+		planMining(space, ship);
 		newAction = goMining(space, ship);
 		if (newAction != null) return newAction;
 
@@ -254,6 +256,73 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 	
 	/**
+	 * Plan out asteroid collection sequence
+	 * 
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
+	public void planMining(Toroidal2DPhysics space, Ship ship) {
+		if(asteroidPlan.get(ship.getId()) == null || asteroidPlan.get(ship.getId()).isEmpty() || propositionalKnowledge.shouldPlanAsteroidCollection()) {
+			double radius;
+			List<Asteroid> asteroids;
+			
+			do {
+				radius = propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS;
+				asteroids = relationalKnowledge.findAsteroidsWithinRadius(space, ship, radius);
+				radius += 100;
+			} while( sumAsteroids(asteroids) < agent.HIGH_RESOURCES - ship.getResources().getTotal() );
+
+			asteroids = QuickSort.quickSort(asteroids, 0, asteroids.size()-1);			
+			asteroidPlan.put(ship.getId(), getAsteroidPlan(space, ship, asteroids));
+		}
+	}
+	
+	/**
+	 * Plan out asteroid collection sequence
+	 * 
+	 * @param space
+	 * @param ship
+	 * @return
+	 */
+	public LinkedList<Asteroid> getAsteroidPlan(Toroidal2DPhysics space, Ship ship, List<Asteroid> asteroids) {
+		LinkedList<Asteroid> chosenAsteroids = new LinkedList<>();
+		double resouces = 0.0;
+		for( Asteroid asteroid : asteroids ) {
+			if( !chosenAsteroids.contains(asteroid) ) {
+				// Add asteroids in sequence until goal condition has been met
+				chosenAsteroids.add(asteroid);
+				// Sum resources for the sequence so far
+				resouces += asteroid.getResources().getTotal();
+				/*
+				 * Check that the precondition of the goal state (returning to the home base) has been met
+				 * Then return the sequence of asteroids that leads to that the goal state
+				 */
+				if(resouces >= agent.HIGH_RESOURCES){
+					return chosenAsteroids;
+				}
+			}
+		}
+		// Return null if there is no sequence of actions that lead to the goal state
+		return null;
+	}
+	
+	
+	/**
+	 * Sum the total resources of a set of asteroids
+	 * 
+	 * @param asteroids
+	 * @return
+	 */
+	private double sumAsteroids(List<Asteroid> asteroids) {
+		double sum = 0.0;
+		for( Asteroid asteroid : asteroids){ 
+			sum += asteroid.getResources().getTotal();
+		}
+		return sum;
+	}
+	
+	/**
 	 * Go for asteroid
 	 * 
 	 * @param space
@@ -262,32 +331,21 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 */
 	private AbstractAction goMining(Toroidal2DPhysics space, Ship ship) {
 		setShouldShoot(ship, false);
-
-		// Search within radius of base for asteroids. If none found, expand radius, until max radius is reached.
-		for (double radius = propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS; radius <= propositionalKnowledge.MAXIMUM_ASTEROID_SEARCH_RADIUS; radius += 100) {
-			Asteroid asteroid = relationalKnowledge.findHighestValueAsteroidWithinRadius(space, ship, radius);
-			if (asteroid != null && relationalKnowledge.getCurrentTargetAsteroid(ship) == null) {
-				if (resourceDelivery.predictSurvivalProbability(ship.getEnergy(),
-						space.findShortestDistance(ship.getPosition(), asteroid.getPosition()),
-						space.findShortestDistance(asteroid.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()),
-						space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition())) > propositionalKnowledge.ASTEROID_COLLECTION_PROBABILITY_THRESHOLD) {
-
-					// We will probably survive the trip if we go for another asteroid.
-					setShouldShoot(ship, false);
-					relationalKnowledge.setCurrentTargetAsteroid(asteroid, ship);
-					return fasterMoveToObjectAction(space, asteroid, ship);
-				} else {
-					// We probably won't survive going for another asteroid. Go back to base to deposit what we have and heal.
-					return goHome(space, ship);
-				}
-			} else {
-				if(relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
-					return fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetAsteroid(ship), ship);
-				}
+		
+		if (relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
+			return fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetAsteroid(ship), ship);
+		} else {
+			Asteroid targetAsteroid;
+			do {
+				targetAsteroid = asteroidPlan.get(ship.getId()).removeFirst();
+			} while ( (targetAsteroid == null || !targetAsteroid.isAlive()) && asteroidPlan.get(ship.getId()) != null && !asteroidPlan.get(ship.getId()).isEmpty() );
+			
+			if (targetAsteroid != null && targetAsteroid.isAlive()) {
+				return fasterMoveToObjectAction(space, targetAsteroid, ship);
 			}
 		}
-
-		return null;
+		
+		return goHome(space, ship);
 	}
 	
 	/**
@@ -786,6 +844,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		relationalKnowledge = new RelationalRepresentation();
 		graphicsToAdd = new HashMap<UUID, ArrayList<SpacewarGraphics>>();
 		currentPath = new HashMap<UUID, LinkedList<Vertex>>();
+		asteroidPlan = new HashMap<>();
 		currentGoalObject = new HashMap<UUID, AbstractObject>();
 		interceptPosition = new HashMap<UUID, Position>();
 		graphByShip = new HashMap<UUID, Graph>();

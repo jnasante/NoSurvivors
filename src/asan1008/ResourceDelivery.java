@@ -8,7 +8,7 @@ public class ResourceDelivery {
 	private int success;
 	
 	// Weights learned from linear regression
-	private final double[] w = { 0.610862369323, 8.10469543238e-05, -0.000599327181399, -0.000795335405885, 0.000626560550786 };
+	private static final double[] w = { 0.610862369323, 8.10469543238e-05, -0.000599327181399, -0.000795335405885, 0.000626560550786 };
 	
 	public ResourceDelivery() {
 		
@@ -44,7 +44,7 @@ public class ResourceDelivery {
 	 * @param shipToBase
 	 * @return
 	 */
-	public double predictSurvivalProbability( double energy, double shipToAsteroid, double asteroidToBase, double shipToBase ) {
+	public static double predictSurvivalProbability( double energy, double shipToAsteroid, double asteroidToBase, double shipToBase ) {
 		return w[0] + w[1]*energy + w[2]*shipToAsteroid + w[3]*asteroidToBase + w[4]*shipToBase;
 	}
 	
