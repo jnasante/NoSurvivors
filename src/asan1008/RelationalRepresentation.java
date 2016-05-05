@@ -1,6 +1,8 @@
 package asan1008;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -266,19 +268,12 @@ public class RelationalRepresentation {
 	 * @return
 	 */
 	private Base findNearestBase(Toroidal2DPhysics space, Ship ship) {
-		double minDistance = Double.MAX_VALUE;
 		Base nearestBase = null;
 
 		for (Base base : space.getBases()) {
 			if (base.getTeamName().equalsIgnoreCase(ship.getTeamName())) {
 				nearestBase = base;
 				break;
-				
-//				double dist = space.findShortestDistance(ship.getPosition(), base.getPosition());
-//				if (dist < minDistance) {
-//					minDistance = dist;
-//					nearestBase = base;
-//				}
 			}
 		}
 		
@@ -366,6 +361,29 @@ public class RelationalRepresentation {
 	}
 	
 	/**
+	 * Returns all asteroids within specified radius of our base
+	 * 
+	 * @return
+	 */
+	public List<Asteroid> findAsteroidsWithinRadius(Toroidal2DPhysics space, Ship ship, double radius) {
+		Set<Asteroid> asteroids = space.getAsteroids();
+		List<Asteroid> localAsteroids = new ArrayList<>();
+
+		for (Asteroid asteroid : asteroids) {
+			if (asteroid.isMineable() && 
+					space.findShortestDistance(findNearestBase(space, ship).getPosition(), asteroid.getPosition()) < radius &&
+					!currentTargetAsteroid.containsValue(asteroid) &&
+					ResourceDelivery.predictSurvivalProbability(ship.getEnergy(),
+							space.findShortestDistance(ship.getPosition(), asteroid.getPosition()),
+							space.findShortestDistance(asteroid.getPosition(), getNearestBase(ship).getPosition()),
+							space.findShortestDistance(ship.getPosition(), getNearestBase(ship).getPosition())) > 0.3) {
+				localAsteroids.add(asteroid);
+			}
+		}
+		return localAsteroids;
+	}
+	
+	/**
 	 * Find out if an enemy is within the line of fire
 	 * 
 	 * @param space Current space instance
@@ -373,7 +391,12 @@ public class RelationalRepresentation {
 	 * 
 	 * @return Boolean value for whether or not we should shoot
 	 */
+	@SuppressWarnings("unused")
 	public boolean enemyOnPath(Toroidal2DPhysics space, Ship ship, Position predictedEnemyPosition) {
+		/*
+		 *  Statements to test agents without using enemyOnPath
+		 *  Due to poor performance, we are negating this method until it can be fixed
+		 */
 		if (true) return true;
 		
 		// prepare the necessary variables for the algorithm
