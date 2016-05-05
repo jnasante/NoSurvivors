@@ -34,6 +34,7 @@ import spacesettlers.objects.Base;
 import spacesettlers.objects.Ship;
 import spacesettlers.objects.powerups.SpaceSettlersPowerupEnum;
 import spacesettlers.objects.resources.ResourcePile;
+import spacesettlers.objects.weapons.AbstractWeapon;
 import spacesettlers.objects.weapons.Missile;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
@@ -88,8 +89,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 //				}
 				
 				// the first time we initialize, decide which ship is the asteroid collector
-				if (asteroidCollectorIDs.size() < 2 ) {
-					if( !asteroidCollectorIDs.contains(ship.getId())){
+				if (asteroidCollectorIDs.size() < 1 && ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) {
+					if( !asteroidCollectorIDs.contains(ship.getId())) {
 						asteroidCollectorIDs.add(ship.getId());
 						//if (ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) log("Asteroid collector id: " + ship.getId());
 					}
@@ -394,7 +395,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 	
 	/**
-	 * Go to beacon
+	 * Go to nearest beacon (and set it as target so we don't deviate unless it dies or we die)
 	 * 
 	 * @param space
 	 * @param ship
@@ -429,6 +430,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	}
 	
 	/**
+	 * Calculate if given position is in free space (with a buffer or ship's radius around it)
 	 * 
 	 * @param pos
 	 * @param space
@@ -668,7 +670,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @param space
 	 * @return
 	 */
-	private Position getInterceptPosition(Toroidal2DPhysics space, Position goalPosition, Ship ship, double velocity, int xMax, int yMax) {
+	private Position getInterceptPosition(Toroidal2DPhysics space, Position goalPosition, Ship ship, double velocity) {
 		if (!teamName.equalsIgnoreCase("NoSurvivorsTeamClient") || !isAsteroidCollector(ship)) return goalPosition;
 		
 		double goalVelocityX = goalPosition.getTranslationalVelocityX();
@@ -689,8 +691,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		double quadraticTemp = Math.sqrt(Math.pow(b, 2) - 4*a*c);
 		double testSign = (-b + quadraticTemp)/(2*a);
 		double timeToIntercept = ( testSign > 0 ) ? testSign : (-b - quadraticTemp)/(2*a);
-		double x = (goalPosition.getX() + timeToIntercept*goalVelocityX) % xMax;
-		double y = (goalPosition.getY() + timeToIntercept*goalVelocityY) % yMax;
+		double x = (goalPosition.getX() + timeToIntercept*goalVelocityX) % space.getWidth();
+		double y = (goalPosition.getY() + timeToIntercept*goalVelocityY) % space.getHeight();
 		
 //		if (Double.isNaN(x) || Double.isNaN(y)) {
 //			log("Avoided wormhole!");
@@ -724,7 +726,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				targetInterceptVelocity = ship.getEnergy() < agent.LOW_ENERGY ? agent.SPEED_SLOW : agent.SPEED_FAST;
 			}
 			
-			interceptPosition.put(ship.getId(), getInterceptPosition(space, goalObject.getPosition(), ship, targetInterceptVelocity, space.getWidth(), space.getHeight()));
+			interceptPosition.put(ship.getId(), getInterceptPosition(space, goalObject.getPosition(), ship, targetInterceptVelocity));
 		}
 		
 		// The magnitude of our velocity vector. If we are dangerously low on energy, slow down
@@ -763,7 +765,10 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				VELOCITY_MAGNITUDE = propositionalKnowledge.SPEED_CHEAT_DEATH;
 				
 				// Generate random point, path to which is free
-				targetPosition = digOwnGrave(space, ship);
+				Position grave = digOwnGrave(space, ship);
+				if (grave != null) {
+					targetPosition = grave;
+				}
 			}
 			
 			// Scale by which to multiply our distance vectors to get the desired velocity magnitude
@@ -974,8 +979,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 			for (AbstractActionableObject actionableObject : actionableObjects) {
 				if (actionableObject instanceof Base) {
 					Base base = (Base) actionableObject;
+					if (!base.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) break;
 					purchases.put(base.getId(), PurchaseTypes.SHIP);
-					//log(space.getCurrentTimestep() + "\t" + base.getTeamName() + " is increasing the size of its army");
+					log(space.getCurrentTimestep() + "\t" + base.getTeamName() + " is increasing the size of its army");
 					break;
 				}
 			}
@@ -995,13 +1001,25 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					}
 				}
 			}
-			
-			// can we buy EMP?
+
+			// can we buy shield?
+//			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_SHIELD, resourcesAvailable)) {
+//				for (AbstractActionableObject actionableObject : actionableObjects) {
+//					if (actionableObject instanceof Ship) {
+//						Ship ship = (Ship) actionableObject;
+//						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_SHIELD.getPowerupMap())) {
+//							purchases.put(ship.getId(), PurchaseTypes.POWERUP_SHIELD);
+//							log(space.getCurrentTimestep() + "\t" + ship.getTeamName() + " is buying shield for ship: " + ship.getId());
+//						}
+//					}
+//				}
+//			}
+
+			// can we buy EMP launcher?
 			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_EMP_LAUNCHER, resourcesAvailable)) {
 				for (AbstractActionableObject actionableObject : actionableObjects) {
 					if (actionableObject instanceof Ship) {
 						Ship ship = (Ship) actionableObject;
-						
 						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_EMP_LAUNCHER.getPowerupMap())) {
 							purchases.put(ship.getId(), PurchaseTypes.POWERUP_EMP_LAUNCHER);
 							//log(space.getCurrentTimestep() + "\t" + ship.getTeamName() + " is buying an EMP launcher");
@@ -1023,35 +1041,30 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return Map of UUID of actionable object to SpaceSettlersPowerupEnum
 	 */
 	@Override
-//	public Map<UUID, SpaceSettlersPowerupEnum> getPowerups(Toroidal2DPhysics space,
-//			Set<AbstractActionableObject> actionableObjects) {
-//		HashMap<UUID, SpaceSettlersPowerupEnum> powerUps = new HashMap<UUID, SpaceSettlersPowerupEnum>();
-//
-//		Random random = new Random();
-//		for (AbstractActionableObject actionableObject : actionableObjects) {
-//			if (!(actionableObject instanceof Ship)) {
-//				continue;
-//			}
-//			
-//			SpaceSettlersPowerupEnum powerup = SpaceSettlersPowerupEnum.values()[random
-//					.nextInt(SpaceSettlersPowerupEnum.values().length)];
-//			if (actionableObject.isValidPowerup(powerup) && random.nextDouble() < weaponsProbability && shouldShoot.get(actionableObject.getId()).booleanValue()) {
-//				powerUps.put(actionableObject.getId(), powerup);
-//			}
-//		}
-//
-//		return powerUps;
-//	}
-	
 	public Map<UUID, SpaceSettlersPowerupEnum> getPowerups(Toroidal2DPhysics space,
 			Set<AbstractActionableObject> actionableObjects) {
 		HashMap<UUID, SpaceSettlersPowerupEnum> powerUps = new HashMap<UUID, SpaceSettlersPowerupEnum>();
 
 		Random random = new Random();
 		for (AbstractActionableObject actionableObject : actionableObjects) {
-			SpaceSettlersPowerupEnum powerup = SpaceSettlersPowerupEnum.values()[random.nextInt(SpaceSettlersPowerupEnum.values().length)];
+			if (!(actionableObject instanceof Ship)) {
+				continue;
+			}
+			
+			SpaceSettlersPowerupEnum powerup = random.nextFloat() > 0.8 ? SpaceSettlersPowerupEnum.FIRE_EMP : SpaceSettlersPowerupEnum.FIRE_MISSILE;
 			if (actionableObject.isValidPowerup(powerup) && shouldShoot.get(actionableObject.getId())) {
 				powerUps.put(actionableObject.getId(), powerup);
+				if (powerup != SpaceSettlersPowerupEnum.FIRE_MISSILE) {
+					log("Using powerup: " + powerup.toString());
+				}
+			}
+			
+			for (AbstractWeapon weapon : space.getWeapons()) {
+				if (space.findShortestDistance(actionableObject.getPosition(), weapon.getPosition()) > 5) {
+					continue;
+				}
+				
+				Position intercept = getInterceptPosition(space, weapon.getPosition(), (Ship)actionableObject, actionableObject.getPosition().getTotalTranslationalVelocity());
 			}
 		}
 		

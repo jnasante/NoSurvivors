@@ -398,7 +398,6 @@ public class RelationalRepresentation {
 		 *  Due to poor performance, we are negating this method until it can be fixed
 		 */
 		if (true) return true;
-		if (!ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) return true;
 		
 		// prepare the necessary variables for the algorithm
 		double shipX = ship.getPosition().getX();
