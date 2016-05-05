@@ -34,6 +34,7 @@ import spacesettlers.objects.Base;
 import spacesettlers.objects.Ship;
 import spacesettlers.objects.powerups.SpaceSettlersPowerupEnum;
 import spacesettlers.objects.resources.ResourcePile;
+import spacesettlers.objects.weapons.AbstractWeapon;
 import spacesettlers.objects.weapons.Missile;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
@@ -86,8 +87,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 //				}
 				
 				// the first time we initialize, decide which ship is the asteroid collector
-				if (asteroidCollectorIDs.size() < 2 && ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) {
-					if( !asteroidCollectorIDs.contains(ship.getId())){
+				if (asteroidCollectorIDs.size() < 1 && ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) {
+					if( !asteroidCollectorIDs.contains(ship.getId())) {
 						asteroidCollectorIDs.add(ship.getId());
 						//if (ship.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) log("Asteroid collector id: " + ship.getId());
 					}
@@ -609,7 +610,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @param space
 	 * @return
 	 */
-	private Position getInterceptPosition(Toroidal2DPhysics space, Position goalPosition, Ship ship, double velocity, int xMax, int yMax) {
+	private Position getInterceptPosition(Toroidal2DPhysics space, Position goalPosition, Ship ship, double velocity) {
 		if (!teamName.equalsIgnoreCase("NoSurvivorsTeamClient") || !isAsteroidCollector(ship)) return goalPosition;
 		
 		double goalVelocityX = goalPosition.getTranslationalVelocityX();
@@ -630,8 +631,8 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		double quadraticTemp = Math.sqrt(Math.pow(b, 2) - 4*a*c);
 		double testSign = (-b + quadraticTemp)/(2*a);
 		double timeToIntercept = ( testSign > 0 ) ? testSign : (-b - quadraticTemp)/(2*a);
-		double x = (goalPosition.getX() + timeToIntercept*goalVelocityX) % xMax;
-		double y = (goalPosition.getY() + timeToIntercept*goalVelocityY) % yMax;
+		double x = (goalPosition.getX() + timeToIntercept*goalVelocityX) % space.getWidth();
+		double y = (goalPosition.getY() + timeToIntercept*goalVelocityY) % space.getHeight();
 		
 //		if (Double.isNaN(x) || Double.isNaN(y)) {
 //			log("Avoided wormhole!");
@@ -665,7 +666,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				targetInterceptVelocity = ship.getEnergy() < agent.LOW_ENERGY ? agent.SPEED_SLOW : agent.SPEED_FAST;
 			}
 			
-			interceptPosition.put(ship.getId(), getInterceptPosition(space, goalObject.getPosition(), ship, targetInterceptVelocity, space.getWidth(), space.getHeight()));
+			interceptPosition.put(ship.getId(), getInterceptPosition(space, goalObject.getPosition(), ship, targetInterceptVelocity));
 		}
 		
 		// The magnitude of our velocity vector. If we are dangerously low on energy, slow down
@@ -939,7 +940,20 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					}
 				}
 			}
-			
+
+			// can we buy shield?
+//			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_SHIELD, resourcesAvailable)) {
+//				for (AbstractActionableObject actionableObject : actionableObjects) {
+//					if (actionableObject instanceof Ship) {
+//						Ship ship = (Ship) actionableObject;
+//						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_SHIELD.getPowerupMap())) {
+//							purchases.put(ship.getId(), PurchaseTypes.POWERUP_SHIELD);
+//							log(space.getCurrentTimestep() + "\t" + ship.getTeamName() + " is buying shield for ship: " + ship.getId());
+//						}
+//					}
+//				}
+//			}
+
 			// can we buy EMP launcher?
 			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_EMP_LAUNCHER, resourcesAvailable)) {
 				for (AbstractActionableObject actionableObject : actionableObjects) {
@@ -972,9 +986,24 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 		Random random = new Random();
 		for (AbstractActionableObject actionableObject : actionableObjects) {
-			SpaceSettlersPowerupEnum powerup = SpaceSettlersPowerupEnum.values()[random.nextInt(SpaceSettlersPowerupEnum.values().length)];
+			if (!(actionableObject instanceof Ship)) {
+				continue;
+			}
+			
+			SpaceSettlersPowerupEnum powerup = random.nextFloat() > 0.8 ? SpaceSettlersPowerupEnum.FIRE_EMP : SpaceSettlersPowerupEnum.FIRE_MISSILE;
 			if (actionableObject.isValidPowerup(powerup) && shouldShoot.get(actionableObject.getId())) {
 				powerUps.put(actionableObject.getId(), powerup);
+				if (powerup != SpaceSettlersPowerupEnum.FIRE_MISSILE) {
+					log("Using powerup: " + powerup.toString());
+				}
+			}
+			
+			for (AbstractWeapon weapon : space.getWeapons()) {
+				if (space.findShortestDistance(actionableObject.getPosition(), weapon.getPosition()) > 5) {
+					continue;
+				}
+				
+				Position intercept = getInterceptPosition(space, weapon.getPosition(), (Ship)actionableObject, actionableObject.getPosition().getTotalTranslationalVelocity());
 			}
 		}
 		
