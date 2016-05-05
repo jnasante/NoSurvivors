@@ -263,15 +263,16 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	 * @return
 	 */
 	public void planMining(Toroidal2DPhysics space, Ship ship) {
-		if(asteroidPlan.get(ship.getId()) == null || asteroidPlan.get(ship.getId()).isEmpty() || propositionalKnowledge.shouldPlanAsteroidCollection()) {
+		if(asteroidPlan.get(ship.getId()) == null || asteroidPlan.get(ship.getId()).isEmpty()) {
 			double radius;
 			List<Asteroid> asteroids;
 			
+			radius = propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS;
+			
 			do {
-				radius = propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS;
 				asteroids = relationalKnowledge.findAsteroidsWithinRadius(space, ship, radius);
 				radius += 100;
-			} while( sumAsteroids(asteroids) < agent.HIGH_RESOURCES - ship.getResources().getTotal() );
+			} while( sumAsteroids(asteroids) < agent.HIGH_RESOURCES - ship.getResources().getTotal() && radius < propositionalKnowledge.MAXIMUM_ASTEROID_SEARCH_RADIUS);
 
 			asteroids = QuickSort.quickSort(asteroids, 0, asteroids.size()-1);			
 			asteroidPlan.put(ship.getId(), getAsteroidPlan(space, ship, asteroids));
@@ -538,7 +539,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 	private void getAStarPathToGoal(Toroidal2DPhysics space, Ship ship, Position goalPosition) {
 		// If path is clear of obstructions, don't use A*
 		pathClear = !shouldUseAStar || space.isPathClearOfObstructions(ship.getPosition(), interceptPosition.get(ship.getId()), getObstructions(space, ship), 10);
-		if (interceptPosition.get(ship.getId()) == null) log("bull");
+
 		if (!pathClear) {
 			Graph graph = AStarSearch.createGraphToGoalWithBeacons(space, ship, goalPosition, new Random());
 			currentPath.put(ship.getId(), graph.findAStarPath(space));
@@ -980,7 +981,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					Base base = (Base) actionableObject;
 					if (!base.getTeamName().equalsIgnoreCase("NoSurvivorsTeamClient")) break;
 					purchases.put(base.getId(), PurchaseTypes.SHIP);
-					log(space.getCurrentTimestep() + "\t" + base.getTeamName() + " is increasing the size of its army");
+					//log(space.getCurrentTimestep() + "\t" + base.getTeamName() + " is increasing the size of its army");
 					break;
 				}
 			}
@@ -1000,19 +1001,6 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 					}
 				}
 			}
-
-			// can we buy shield?
-//			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_SHIELD, resourcesAvailable)) {
-//				for (AbstractActionableObject actionableObject : actionableObjects) {
-//					if (actionableObject instanceof Ship) {
-//						Ship ship = (Ship) actionableObject;
-//						if (!ship.isValidPowerup(PurchaseTypes.POWERUP_SHIELD.getPowerupMap())) {
-//							purchases.put(ship.getId(), PurchaseTypes.POWERUP_SHIELD);
-//							log(space.getCurrentTimestep() + "\t" + ship.getTeamName() + " is buying shield for ship: " + ship.getId());
-//						}
-//					}
-//				}
-//			}
 
 			// can we buy EMP launcher?
 			if (purchaseCosts.canAfford(PurchaseTypes.POWERUP_EMP_LAUNCHER, resourcesAvailable)) {
@@ -1046,24 +1034,9 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 
 		Random random = new Random();
 		for (AbstractActionableObject actionableObject : actionableObjects) {
-			if (!(actionableObject instanceof Ship)) {
-				continue;
-			}
-			
-			SpaceSettlersPowerupEnum powerup = random.nextFloat() > 0.8 ? SpaceSettlersPowerupEnum.FIRE_EMP : SpaceSettlersPowerupEnum.FIRE_MISSILE;
+			SpaceSettlersPowerupEnum powerup = SpaceSettlersPowerupEnum.values()[random.nextInt(SpaceSettlersPowerupEnum.values().length)];
 			if (actionableObject.isValidPowerup(powerup) && shouldShoot.get(actionableObject.getId())) {
 				powerUps.put(actionableObject.getId(), powerup);
-				if (powerup != SpaceSettlersPowerupEnum.FIRE_MISSILE) {
-					log("Using powerup: " + powerup.toString());
-				}
-			}
-			
-			for (AbstractWeapon weapon : space.getWeapons()) {
-				if (space.findShortestDistance(actionableObject.getPosition(), weapon.getPosition()) > 5) {
-					continue;
-				}
-				
-				Position intercept = getInterceptPosition(space, weapon.getPosition(), (Ship)actionableObject, actionableObject.getPosition().getTotalTranslationalVelocity());
 			}
 		}
 		
