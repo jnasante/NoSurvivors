@@ -39,6 +39,7 @@ import spacesettlers.objects.weapons.Missile;
 import spacesettlers.simulator.Toroidal2DPhysics;
 import spacesettlers.utilities.Position;
 import spacesettlers.utilities.Vector2D;
+import sun.awt.image.ImageWatched.Link;
 
 /**
  * Aggressive client that leaves no survivors
@@ -249,7 +250,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 		// Nothing exists, just go home
 		newAction = goHome(space, ship);
 		if (newAction != null) return newAction;
-		
+
 		// Do nothing if we cannot determine a new action
 		ship.setCurrentAction(null);
 		return new DoNothingAction();
@@ -273,6 +274,7 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				radius += 100;
 			} while( sumAsteroids(asteroids) < agent.HIGH_RESOURCES - ship.getResources().getTotal() );
 
+<<<<<<< HEAD
 			asteroids = QuickSort.quickSort(asteroids, 0, asteroids.size()-1);			
 			asteroidPlan.put(ship.getId(), getAsteroidPlan(space, ship, asteroids));
 		}
@@ -301,6 +303,28 @@ public class NoSurvivorsTeamClient extends spacesettlers.clients.TeamClient {
 				if(resouces >= agent.HIGH_RESOURCES){
 					return chosenAsteroids;
 				}
+=======
+		// Search within radius of base for asteroids. If none found, expand radius, until max radius is reached.
+		for (double radius = propositionalKnowledge.MINIMUM_ASTEROID_SEARCH_RADIUS; radius <= propositionalKnowledge.MAXIMUM_ASTEROID_SEARCH_RADIUS; radius += 100) {
+			Asteroid asteroid = relationalKnowledge.findHighestValueAsteroidWithinRadius(space, ship, radius);
+			if (asteroid != null && relationalKnowledge.getCurrentTargetAsteroid(ship) == null) {
+				if (resourceDelivery.predictSurvivalProbability(ship.getEnergy(),
+						space.findShortestDistance(ship.getPosition(), asteroid.getPosition()),
+						space.findShortestDistance(asteroid.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition()),
+						space.findShortestDistance(ship.getPosition(), relationalKnowledge.getNearestBase(ship).getPosition())) > propositionalKnowledge.ASTEROID_COLLECTION_PROBABILITY_THRESHOLD) {
+
+					// We will probably survive the trip if we go for another asteroid.
+					setShouldShoot(ship, false);
+					relationalKnowledge.setCurrentTargetAsteroid(asteroid, ship);
+					return fasterMoveToObjectAction(space, asteroid, ship);
+				} else {
+					// We probably won't survive going for another asteroid. Go back to base to deposit what we have and heal.
+					return goHome(space, ship);
+				}
+			} else if (relationalKnowledge.getCurrentTargetAsteroid(ship) != null) {
+				// If we have target, keep pursuing it
+				return fasterMoveToObjectAction(space, relationalKnowledge.getCurrentTargetAsteroid(ship), ship);
+>>>>>>> dc5b8f32b1c51adb8ea4667f40b9ee9e635d02f2
 			}
 		}
 		// Return null if there is no sequence of actions that lead to the goal state
