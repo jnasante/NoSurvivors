@@ -4,7 +4,7 @@ NoSurvivors
 Omniscient, Omnipotent, OmniDeadly SpaceWar client
 
 ## What is this?
-Client designed to play the game Space War (or Space Settlers) intelligently. This agent is guaranteed to destroy all enemies. It does so through a combination of heuristics, search, machine learning, and other deadly characteristics.
+Client designed to play the game Space War (or Space Settlers) intelligently. This agent is guaranteed to destroy all enemies. It does so by utilizing a combination of heuristics, search, machine learning, and other methods.
 
 ## See it in action
 This code is written in Java. Simply clone the repository, and run this project using Eclipse (or your favorite Java IDE).
